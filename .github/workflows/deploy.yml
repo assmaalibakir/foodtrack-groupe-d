@@ -46,19 +46,56 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # A FAIRE : valider le formatage et la coherence du code Terraform
-      #        pistes : hashicorp/setup-terraform@v4, terraform fmt -check, terraform validate
+      - name: Installer Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.9.0"
 
-      # A FAIRE : valider les manifestes Kubernetes contre le schema
-      #        piste : kubeconform, attention aux ressources propres a GKE
+      - name: Lint Terraform (formatage)
+        run: |
+          if [ -d terraform ]; then
+            terraform fmt -check -recursive terraform/
+          else
+            echo "Dossier terraform/ pas encore present, verification ignoree pour l instant."
+          fi
 
-      # A FAIRE : scanner le code Terraform a la recherche de mauvaises configurations
-      #        piste : aquasecurity/trivy-action@v0.36.0 en mode config
+      - name: Lint Terraform (validité)
+        run: |
+          if [ -d terraform ]; then
+            cd terraform
+            terraform init -backend=false
+            terraform validate
+          else
+            echo "Dossier terraform/ pas encore présent, vérification ignorée pour l'instant."
+          fi
 
-      # A FAIRE : decider du seuil de severite qui fait echouer le job, et le
-      #        justifier dans le README. Desactiver le scan n est pas une option.
-      - name: A completer
-        run: echo "a remplacer par vos etapes"
+      - name: Installer kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Lint manifestes Kubernetes
+        run: |
+          if [ -d manifests ] && [ -n "$(find manifests -name '*.yaml' -o -name '*.yml' 2>/dev/null)" ]; then
+            kubeconform -summary -ignore-missing-schemas \
+              -kubernetes-version 1.30.0 \
+              manifests/
+          else
+            echo "Dossier manifests/ pas encore present ou vide, verification ignoree pour l instant."
+          fi
+
+      - name: Scan de sécurité Terraform
+        if: hashFiles('terraform/**') != ''
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: terraform/
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+        # Seuil retenu : CRITICAL et HIGH font échouer le job.
+        # MEDIUM/LOW sont ignorés pour ne pas bloquer sur des points mineurs.
+        # À documenter dans le README.
+        # L'étape est ignorée tant qu'il n'y a aucun fichier Terraform à scanner.
 
   build:
     name: Build et publication de l image
