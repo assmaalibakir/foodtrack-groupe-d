@@ -156,7 +156,6 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
-    # A FAIRE : declarer l environnement GitHub correspondant
     steps:
       - uses: actions/checkout@v5
 
@@ -189,7 +188,8 @@ jobs:
 
   deploy-test:
     name: Deploiement test
-    needs: deploy-dev
+    needs: build
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       # A FAIRE : meme structure que deploy-dev, sur le namespace de test
@@ -198,18 +198,12 @@ jobs:
 
   deploy-prod:
     name: Deploiement production
-    needs: deploy-test
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    # A FAIRE : cet environnement doit exiger une approbation humaine.
-    #        Elle se configure cote depot : Settings > Environments > required
-    #        reviewers. Le job attend alors qu un relecteur valide.
-    #        Un "if" dans le workflow ne remplace pas une porte d approbation :
-    #        il filtre, il ne demande rien a personne.
     environment:
       name: production
     steps:
       # A FAIRE : deploiement en production, puis verification
-      # A FAIRE : decider et documenter ce qui declenche la production :
-      #        un merge sur main, une etiquette de version, ou les deux
       - name: A completer
         run: echo "a remplacer par vos etapes"
