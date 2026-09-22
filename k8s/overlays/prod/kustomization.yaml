@@ -3,3 +3,24 @@ kind: Kustomization
 namespace: foodtrack-prod
 resources:
   - namespace.yaml
+  - ../../base
+configMapGenerator:
+  - name: foodtrack-config
+    behavior: merge
+    files:
+      - index.html
+    literals:
+      - ENVIRONMENT=prod
+      - SEUIL_TEMPERATURE_C=4
+      - NIVEAU_JOURNAL=warn
+replicas:
+  - name: portail-qualite
+    count: 2
+patches:
+  - target:
+      kind: StatefulSet
+      name: cache-releves
+    patch: |-
+      - op: replace
+        path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage
+        value: 20Gi

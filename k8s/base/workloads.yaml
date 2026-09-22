@@ -1,0 +1,160 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portail-qualite
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: portail-qualite}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
+  template:
+    metadata:
+      labels: {app: portail-qualite}
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: nginx
+          image: nginx:1.30.5
+          ports:
+            - {name: http, containerPort: 8080}
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 300m, memory: 256Mi}
+          startupProbe:
+            httpGet: {path: /healthz, port: 8080}
+            periodSeconds: 5
+            failureThreshold: 12
+          readinessProbe:
+            httpGet: {path: /healthz, port: 8080}
+            periodSeconds: 5
+            timeoutSeconds: 2
+          livenessProbe:
+            httpGet: {path: /healthz, port: 8080}
+            periodSeconds: 10
+            timeoutSeconds: 2
+          volumeMounts:
+            - name: conf
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+              readOnly: true
+            - name: conf
+              mountPath: /usr/share/nginx/html/index.html
+              subPath: index.html
+              readOnly: true
+      volumes:
+        - name: conf
+          configMap:
+            name: foodtrack-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-capteurs
+spec:
+  # Une replique par defaut ; le HPA sera ajoute a l'etape suivante.
+  selector:
+    matchLabels: {app: api-capteurs}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
+  template:
+    metadata:
+      labels: {app: api-capteurs}
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: api
+          image: us-docker.pkg.dev/google-samples/containers/gke/hello-app:2.0
+          ports:
+            - {name: http, containerPort: 8080}
+          env:
+            - name: ENVIRONMENT
+              valueFrom:
+                configMapKeyRef: {name: foodtrack-config, key: ENVIRONMENT}
+            - name: SEUIL_TEMPERATURE_C
+              valueFrom:
+                configMapKeyRef: {name: foodtrack-config, key: SEUIL_TEMPERATURE_C}
+            - name: NIVEAU_JOURNAL
+              valueFrom:
+                configMapKeyRef: {name: foodtrack-config, key: NIVEAU_JOURNAL}
+            - name: INGEST_TOKEN
+              valueFrom:
+                secretKeyRef: {name: foodtrack-api-config, key: INGEST_TOKEN}
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 300m, memory: 256Mi}
+          startupProbe:
+            httpGet: {path: /, port: 8080}
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: {path: /, port: 8080}
+            periodSeconds: 5
+            timeoutSeconds: 2
+          livenessProbe:
+            httpGet: {path: /, port: 8080}
+            periodSeconds: 10
+            timeoutSeconds: 2
+          lifecycle:
+            preStop:
+              sleep: {seconds: 10}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cache-releves
+spec:
+  serviceName: cache-releves
+  replicas: 1
+  selector:
+    matchLabels: {app: cache-releves}
+  template:
+    metadata:
+      labels: {app: cache-releves}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        fsGroup: 999
+      containers:
+        - name: redis
+          image: redis:8.10.1
+          args: ["--appendonly", "yes", "--dir", "/data", "--requirepass", "$(REDIS_PASSWORD)"]
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: foodtrack-api-config, key: CACHE_PASSWORD}
+            - name: REDISCLI_AUTH
+              valueFrom:
+                secretKeyRef: {name: foodtrack-api-config, key: CACHE_PASSWORD}
+          ports:
+            - {name: redis, containerPort: 6379}
+          resources:
+            requests: {cpu: 200m, memory: 256Mi}
+            limits: {cpu: 500m, memory: 512Mi}
+          startupProbe:
+            exec:
+              command: [sh, -ec, 'test "$(redis-cli ping)" = "PONG"']
+            periodSeconds: 3
+            failureThreshold: 20
+          readinessProbe:
+            exec:
+              command: [sh, -ec, 'test "$(redis-cli ping)" = "PONG"']
+            periodSeconds: 5
+            timeoutSeconds: 2
+          livenessProbe:
+            tcpSocket: {port: 6379}
+            periodSeconds: 10
+          volumeMounts:
+            - {name: donnees, mountPath: /data}
+  volumeClaimTemplates:
+    - metadata:
+        name: donnees
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: foodtrack-hdd
+        resources:
+          requests:
+            storage: 10Gi
