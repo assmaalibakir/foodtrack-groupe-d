@@ -3,6 +3,11 @@ kind: Kustomization
 resources:
   - workloads.yaml
   - services.yaml
+  - ingress.yaml
+  - backendconfig.yaml
+  - hpa.yaml
+patches:
+  - path: service-portail-patch.yaml
 labels:
   - pairs:
       app.kubernetes.io/part-of: foodtrack
