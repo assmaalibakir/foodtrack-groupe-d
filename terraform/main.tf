@@ -26,9 +26,7 @@ provider "google" {
 module "reseau" {
   source = "./modules/reseau"
 
-  project     = var.project
   region      = var.region
-  environment = var.environment
   equipe      = var.equipe
 }
 
@@ -46,12 +44,7 @@ module "stockage" {
 module "compute" {
   source = "./modules/compute"
 
-  project     = var.project
   region      = var.region
   zone        = var.zone
-  environment = var.environment
   equipe      = var.equipe
-
-  network_name    = module.reseau.network_name
-  subnet_gke_name = module.reseau.subnet_gke_name
 }
