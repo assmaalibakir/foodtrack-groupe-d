@@ -1,0 +1,14 @@
+# Fichiers de cache et binaires de Terraform
+.terraform/
+.terraform.lock.hcl
+
+# Fichiers d'état local (ils sont gérés dans le bucket GCS)
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Fichiers de variables contenant potentiellement des secrets
+*.tfvars.json
+
+# Journaux d'erreurs Terraform
+*.log

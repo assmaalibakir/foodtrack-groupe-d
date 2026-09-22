@@ -18,3 +18,8 @@ variable "environment" {
   type        = string
   description = "Environnement (dev, test, prod)"
 }
+
+variable "equipe" {
+  type        = string
+  default     = "d"
+}

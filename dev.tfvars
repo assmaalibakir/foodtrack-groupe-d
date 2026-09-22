@@ -1,0 +1,5 @@
+project_id  = "foodtrack-equipe-d"
+region      = "europe-west4"
+zone        = "europe-west4-b"
+environment = "dev"
+equipe      = "d"
