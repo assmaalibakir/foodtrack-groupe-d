@@ -8,7 +8,7 @@ resource "google_artifact_registry_repository" "docker_repo" {
 
 # Buckets de sauvegarde et d'exports de journaux
 resource "google_storage_bucket" "backup" {
-  Name                     = "foodtrack-${var.equipe}-backup-${var.environment}"
+  name                     = "foodtrack-${var.equipe}-backup-${var.environment}"
   location                 = var.region
   force_destroy            = true
   uniform_bucket_level_access = true
