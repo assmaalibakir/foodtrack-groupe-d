@@ -52,13 +52,22 @@ jobs:
           terraform_version: "1.9.0"
 
       - name: Lint Terraform (formatage)
-        run: terraform fmt -check -recursive terraform/
+        run: |
+          if [ -d terraform ]; then
+            terraform fmt -check -recursive terraform/
+          else
+            echo "Dossier terraform/ pas encore present, verification ignoree pour l instant."
+          fi
 
       - name: Lint Terraform (validité)
         run: |
-          cd terraform
-          terraform init -backend=false
-          terraform validate
+          if [ -d terraform ]; then
+            cd terraform
+            terraform init -backend=false
+            terraform validate
+          else
+            echo "Dossier terraform/ pas encore présent, vérification ignorée pour l'instant."
+          fi
 
       - name: Installer kubeconform
         run: |
@@ -67,11 +76,16 @@ jobs:
 
       - name: Lint manifestes Kubernetes
         run: |
-          kubeconform -summary -ignore-missing-schemas \
-            -kubernetes-version 1.30.0 \
-            manifests/
+          if [ -d manifests ] && [ -n "$(find manifests -name '*.yaml' -o -name '*.yml' 2>/dev/null)" ]; then
+            kubeconform -summary -ignore-missing-schemas \
+              -kubernetes-version 1.30.0 \
+              manifests/
+          else
+            echo "Dossier manifests/ pas encore present ou vide, verification ignoree pour l instant."
+          fi
 
       - name: Scan de sécurité Terraform
+        if: hashFiles('terraform/**') != ''
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: config
@@ -81,6 +95,7 @@ jobs:
         # Seuil retenu : CRITICAL et HIGH font échouer le job.
         # MEDIUM/LOW sont ignorés pour ne pas bloquer sur des points mineurs.
         # À documenter dans le README.
+        # L'étape est ignorée tant qu'il n'y a aucun fichier Terraform à scanner.
 
   build:
     name: Build et publication de l image
