@@ -100,7 +100,7 @@ jobs:
   build:
     name: Publication des images dans Artifact Registry
     needs: qualite
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && vars.WIF_PROVIDER != ''
     runs-on: ubuntu-latest
     strategy:
       matrix:
