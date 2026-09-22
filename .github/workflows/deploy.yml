@@ -205,8 +205,8 @@ jobs:
     #        reviewers. Le job attend alors qu un relecteur valide.
     #        Un "if" dans le workflow ne remplace pas une porte d approbation :
     #        il filtre, il ne demande rien a personne.
-    # environment:
-    #   name: production
+    environment:
+      name: production
     steps:
       # A FAIRE : deploiement en production, puis verification
       # A FAIRE : decider et documenter ce qui declenche la production :
