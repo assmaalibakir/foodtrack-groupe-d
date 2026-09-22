@@ -92,10 +92,11 @@ Pour réduire les dépenses, le node pool pourra être arrêté quand l'environn
 Les coûts seront vérifiés avec le calculateur Google Cloud et les données de facturation du projet
 
 ### Audit
-L'audit permet de vérifier que les règles de sécurité du projet sont bien respectées
+L'audit permet de vérifier que les règles de sécurité du projet sont bien respectées 
+Nous allons contrôler les accès IAM, les règles de pare feu, le bastion, les secrets et les images utilisées. 
+L'objectif est de repérer les éventuels problèmes, de les corriger et de justifier les choix de sécurité qui ont été fait
 
-Nous allons contrôler les accès IAM, les règles de pare-feu, le bastion, les secrets et les images utilisées.
-L'objectif est de repérer les problèmes éventuels, de les corriger et de justifier les choix de sécurité qui ont été faits
+
 =======
 ## Stratégie de versions et de releases
 
