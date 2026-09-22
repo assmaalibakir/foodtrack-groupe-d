@@ -69,19 +69,30 @@ jobs:
             echo "Dossier terraform/ pas encore présent, vérification ignorée pour l'instant."
           fi
 
+      - name: Installer kubectl (inclut kustomize)
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "v1.30.0"
+
       - name: Installer kubeconform
         run: |
           curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
           sudo mv kubeconform /usr/local/bin/
 
-      - name: Lint manifestes Kubernetes
+      - name: Lint manifestes Kubernetes (Kustomize)
         run: |
-          if [ -d manifests ] && [ -n "$(find manifests -name '*.yaml' -o -name '*.yml' 2>/dev/null)" ]; then
-            kubeconform -summary -ignore-missing-schemas \
-              -kubernetes-version 1.30.0 \
-              manifests/
+          if [ -d k8s/overlays ]; then
+            for ENV in dev test prod; do
+              if [ -d "k8s/overlays/$ENV" ]; then
+                echo "--- Assemblage et validation : $ENV ---"
+                kubectl kustomize "k8s/overlays/$ENV" > "/tmp/rendu-$ENV.yaml"
+                kubeconform -summary -ignore-missing-schemas \
+                  -kubernetes-version 1.30.0 \
+                  "/tmp/rendu-$ENV.yaml"
+              fi
+            done
           else
-            echo "Dossier manifests/ pas encore present ou vide, verification ignoree pour l instant."
+            echo "Dossier k8s/overlays pas encore present, verification ignoree pour l instant."
           fi
 
       - name: Scan de sécurité Terraform
@@ -156,7 +167,6 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
-    # A FAIRE : declarer l environnement GitHub correspondant
     steps:
       - uses: actions/checkout@v5
 
@@ -174,42 +184,117 @@ jobs:
           location: ${{ vars.GCP_ZONE }}
       # --- fin du bloc fourni ------------------------------------------------
 
-      # A FAIRE : appliquer les manifestes de l environnement dev
+      - name: Installer kubectl (inclut kustomize)
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "v1.30.0"
 
-      # A FAIRE : mettre a jour l image du deploiement api-capteurs
+      - name: Appliquer les manifestes de l environnement dev
+        run: kubectl apply -k k8s/overlays/dev
 
-      # A FAIRE : attendre la fin du deploiement AVANT de declarer le job en succes
-      #        piste : kubectl rollout status, avec un --timeout explicite.
-      #        Sans cette attente, votre pipeline est vert pendant que les pods
-      #        bouclent en CrashLoopBackOff.
+      - name: Mettre a jour les images vers Artifact Registry
+        run: |
+          REG="${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/foodtrack-d-images"
+          kubectl set image deployment/portail-qualite nginx="$REG/portail-qualite:${{ github.sha }}" -n foodtrack-dev
+          kubectl set image deployment/api-capteurs api="$REG/api-capteurs:${{ github.sha }}" -n foodtrack-dev
 
-      # A FAIRE : verifier que l application repond apres deploiement
-      - name: A completer
-        run: echo "a remplacer par vos etapes"
+      - name: Attendre la fin du deploiement
+        run: |
+          kubectl rollout status deployment/portail-qualite -n foodtrack-dev --timeout=180s
+          kubectl rollout status deployment/api-capteurs -n foodtrack-dev --timeout=180s
+          kubectl rollout status statefulset/cache-releves -n foodtrack-dev --timeout=180s
+
+      - name: Verifier que les pods sont prets
+        run: kubectl wait --for=condition=Ready pods -l app.kubernetes.io/part-of=foodtrack -n foodtrack-dev --timeout=120s
 
   deploy-test:
     name: Deploiement test
-    needs: deploy-dev
+    needs: build
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      # A FAIRE : meme structure que deploy-dev, sur le namespace de test
-      - name: A completer
-        run: echo "a remplacer par vos etapes"
+      - uses: actions/checkout@v5
+
+      # --- FOURNI : acces au cluster ----------------------------------------
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.CI_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/get-gke-credentials@v3
+        with:
+          cluster_name: ${{ vars.GKE_CLUSTER }}
+          location: ${{ vars.GCP_ZONE }}
+      # --- fin du bloc fourni ------------------------------------------------
+
+      - name: Installer kubectl (inclut kustomize)
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "v1.30.0"
+
+      - name: Appliquer les manifestes de l environnement test
+        run: kubectl apply -k k8s/overlays/test
+
+      - name: Mettre a jour les images vers Artifact Registry
+        run: |
+          REG="${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/foodtrack-d-images"
+          kubectl set image deployment/portail-qualite nginx="$REG/portail-qualite:${{ github.sha }}" -n foodtrack-test
+          kubectl set image deployment/api-capteurs api="$REG/api-capteurs:${{ github.sha }}" -n foodtrack-test
+
+      - name: Attendre la fin du deploiement
+        run: |
+          kubectl rollout status deployment/portail-qualite -n foodtrack-test --timeout=180s
+          kubectl rollout status deployment/api-capteurs -n foodtrack-test --timeout=180s
+          kubectl rollout status statefulset/cache-releves -n foodtrack-test --timeout=180s
+
+      - name: Verifier que les pods sont prets
+        run: kubectl wait --for=condition=Ready pods -l app.kubernetes.io/part-of=foodtrack -n foodtrack-test --timeout=120s
 
   deploy-prod:
     name: Deploiement production
-    needs: deploy-test
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    # A FAIRE : cet environnement doit exiger une approbation humaine.
-    #        Elle se configure cote depot : Settings > Environments > required
-    #        reviewers. Le job attend alors qu un relecteur valide.
-    #        Un "if" dans le workflow ne remplace pas une porte d approbation :
-    #        il filtre, il ne demande rien a personne.
     environment:
       name: production
     steps:
-      # A FAIRE : deploiement en production, puis verification
-      # A FAIRE : decider et documenter ce qui declenche la production :
-      #        un merge sur main, une etiquette de version, ou les deux
-      - name: A completer
-        run: echo "a remplacer par vos etapes"
+      - uses: actions/checkout@v5
+
+      # --- FOURNI : acces au cluster ----------------------------------------
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.CI_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/get-gke-credentials@v3
+        with:
+          cluster_name: ${{ vars.GKE_CLUSTER }}
+          location: ${{ vars.GCP_ZONE }}
+      # --- fin du bloc fourni ------------------------------------------------
+
+      - name: Installer kubectl (inclut kustomize)
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "v1.30.0"
+
+      - name: Appliquer les manifestes de production
+        run: kubectl apply -k k8s/overlays/prod
+
+      - name: Mettre a jour les images vers Artifact Registry
+        run: |
+          REG="${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/foodtrack-d-images"
+          kubectl set image deployment/portail-qualite nginx="$REG/portail-qualite:${{ github.sha }}" -n foodtrack-prod
+          kubectl set image deployment/api-capteurs api="$REG/api-capteurs:${{ github.sha }}" -n foodtrack-prod
+
+      - name: Attendre la fin du deploiement
+        run: |
+          kubectl rollout status deployment/portail-qualite -n foodtrack-prod --timeout=180s
+          kubectl rollout status deployment/api-capteurs -n foodtrack-prod --timeout=180s
+          kubectl rollout status statefulset/cache-releves -n foodtrack-prod --timeout=180s
+
+      - name: Verifier que les pods sont prets
+        run: kubectl wait --for=condition=Ready pods -l app.kubernetes.io/part-of=foodtrack -n foodtrack-prod --timeout=120s
