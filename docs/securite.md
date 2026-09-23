@@ -43,11 +43,17 @@ Vérifier que les rôles IAM attribués aux utilisateurs et aux comptes de servi
 
 ### État actuel
 
-Les rôles observés pour `foodtrack-ci` correspondent à des besoins liés à la CI/CD.
 
-Le compte Compute Engine par défaut possède le rôle `Editor`, qui est trop large et doit être corrigé ou justifié.
 
-La vérification des utilisateurs et de leurs rôles reste à finaliser.
+Les droits IAM des quatre membres de l'équipe ont été vérifié
+
+
+
+Plusieurs rôles permettent d'administrer le projet, notamment "Éditeur", "Administrateur de projet IAM" et "Administrateur de compte de service".
+
+
+
+Ces rôles donnent des droits importants et doivent être justifiés selon les besoins de chaque membre.
 
 ## Pare-feu
 
