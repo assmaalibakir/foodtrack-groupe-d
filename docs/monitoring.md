@@ -73,3 +73,5 @@ afin de pouvoir etre reutilisee facilement.
 A configurer lorsque les logs de l'application FoodTrack seront disponibles.
 
 ## Etat actuel
+
+La configuration du monitoring sera finalisée lorsque l'environnement `foodtrack-prod` et l'adresse publique de l'application seront disponibles
