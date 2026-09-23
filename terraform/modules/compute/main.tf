@@ -5,7 +5,7 @@ resource "google_container_cluster" "primary" {
   remove_default_node_pool = true
   initial_node_count       = 1
 
-  # Permet de débloquer le 'terraform destroy'[cite: 10]
+  # Permet de débloquer le 'terraform destroy'
   deletion_protection = false
 
   network    = var.vpc_id
@@ -24,8 +24,8 @@ resource "google_container_cluster" "primary" {
 
   master_authorized_networks_config {
     cidr_blocks {
-      cidr_block   = "0.0.0.0/0" # À restreindre à votre IP / CIDR Bastion
-      display_name = "Authorized-Access"
+      cidr_block   = "0.0.0.0/0"
+      display_name = "Access"
     }
   }
 }
@@ -37,10 +37,16 @@ resource "google_container_node_pool" "primary_nodes" {
   cluster    = google_container_cluster.primary.name
   node_count = 1
 
+  autoscaling {
+    min_node_count = 1
+    max_node_count = 3
+  }
+
   node_config {
     machine_type = "e2-medium"
     disk_type    = "pd-standard"
     disk_size_gb = 50
+    service_account = "foodtrack-ci@form-gke-eleve04-42a1.iam.gserviceaccount.com"
 
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
@@ -49,11 +55,16 @@ resource "google_container_node_pool" "primary_nodes" {
 }
 
 # Bastion de petite taille
+# Service Account dédié au Bastion
+resource "google_service_account" "bastion_sa" {
+  account_id   = "bastion-gke-admin"
+  display_name = "Service Account pour le Bastion GKE"
+}
+
 resource "google_compute_instance" "bastion" {
   name         = "foodtrack-${var.equipe}-bastion"
   machine_type = "e2-micro"
   zone         = var.zone
-
   tags = [var.bastion_tag]
 
   boot_disk {
@@ -65,4 +76,16 @@ resource "google_compute_instance" "bastion" {
   network_interface {
     subnetwork = var.subnet_id
   }
+
+  # Forcer la désactivation de l'authentification par mot de passe
+  metadata = {
+    enable-oslogin = "TRUE"
+    startup-script = <<-EOF
+      #!/bin/bash
+      sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+      sed -i 's/^#*KbdInteractiveAuthentication.*/KbdInteractiveAuthentication no/' /etc/ssh/sshd_config
+      systemctl restart sshd
+    EOF
+  }
 }
+

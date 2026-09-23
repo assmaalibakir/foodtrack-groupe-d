@@ -48,5 +48,5 @@ resource "google_compute_firewall" "allow_ssh_bastion" {
   }
 
   target_tags   = ["bastion-node"]
-  source_ranges = ["35.235.240.0/20"] # IAP GCP (ou votre IP restreinte)
+  source_ranges = ["35.235.240.0/20"] # IAP GCP
 }

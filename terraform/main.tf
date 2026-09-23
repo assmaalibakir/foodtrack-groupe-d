@@ -20,6 +20,9 @@ provider "google" {
   project = var.project
   region  = var.region
   zone    = var.zone
+
+  # Force l'utilisation d'endpoints REST sur IPv4 si nécessaire
+  user_project_override = true
 }
 
 # --- Module Réseau ---
