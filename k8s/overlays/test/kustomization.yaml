@@ -1,4 +1,4 @@
-﻿apiVersion: kustomize.config.k8s.io/v1beta1
+apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: foodtrack-test
 resources:
@@ -11,7 +11,7 @@ configMapGenerator:
       - index.html
     literals:
       - ENVIRONMENT=test
-      - SEUIL_TEMPERATURE_C=6
+      - SEUIL_TEMPERATURE_C=2
       - NIVEAU_JOURNAL=info
 replicas:
   - name: portail-qualite

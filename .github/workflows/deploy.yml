@@ -74,16 +74,21 @@ jobs:
           curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
           sudo mv kubeconform /usr/local/bin/
 
+      - name: Installer kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "v1.30.0"
+
       - name: Lint manifestes Kubernetes
         run: |
-          if [ -d manifests ] && [ -n "$(find manifests -name '*.yaml' -o -name '*.yml' 2>/dev/null)" ]; then
-            kubeconform -summary -ignore-missing-schemas \
-              -kubernetes-version 1.30.0 \
-              manifests/
-          else
-            echo "Dossier manifests/ pas encore present ou vide, verification ignoree pour l instant."
-          fi
-
+          for ENVIRONMENT in dev test prod; do
+            kubectl kustomize "k8s/overlays/$ENVIRONMENT" | \
+              kubeconform -strict -summary -ignore-missing-schemas \
+                -kubernetes-version 1.30.0
+          done
+          kubectl kustomize k8s/cluster | \
+            kubeconform -strict -summary -ignore-missing-schemas \
+              -kubernetes-version 1.30.0
       - name: Scan de sécurité Terraform
         if: hashFiles('terraform/**') != ''
         uses: aquasecurity/trivy-action@v0.36.0

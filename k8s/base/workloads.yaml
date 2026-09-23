@@ -1,4 +1,4 @@
-﻿apiVersion: apps/v1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: portail-qualite
@@ -71,6 +71,10 @@ spec:
           ports:
             - {name: http, containerPort: 8080}
           env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             - name: ENVIRONMENT
               valueFrom:
                 configMapKeyRef: {name: foodtrack-config, key: ENVIRONMENT}

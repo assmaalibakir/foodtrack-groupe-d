@@ -1,11 +1,12 @@
-﻿$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 
 function Test-Kustomize {
     param(
         [string]$Nom,
         [string]$Chemin,
         [int]$NombreAttendu,
-        [string[]]$KindsAttendus
+        [string[]]$KindsAttendus,
+        [hashtable]$ValeursAttendues = @{}
     )
 
     $Sortie = & kubectl kustomize $Chemin 2>&1
@@ -31,6 +32,20 @@ function Test-Kustomize {
         }
     }
 
+    foreach ($Cle in $ValeursAttendues.Keys) {
+        $Valeur = [regex]::Escape([string]$ValeursAttendues[$Cle])
+        $CleRegex = [regex]::Escape($Cle)
+        $Motif = "(?m)^\s*${CleRegex}:\s*['\x22]?$Valeur['\x22]?\s*$"
+
+        if ($Texte -notmatch $Motif) {
+            throw "$Nom - valeur attendue absente : $Cle=$($ValeursAttendues[$Cle])"
+        }
+    }
+
+    if ($Nom -ne "cluster" -and $Texte -notmatch "(?m)^\s*name:\s*foodtrack-config\s*$") {
+        throw "$Nom - le ConfigMap doit porter exactement le nom foodtrack-config"
+    }
+
     Write-Host "$Nom - OK - $NombreRessources ressources" -ForegroundColor Green
 }
 
@@ -45,10 +60,49 @@ $KindsApplication = @(
     "Ingress"
 )
 
-Test-Kustomize -Nom "dev" -Chemin ".\k8s\overlays\dev" -NombreAttendu 11 -KindsAttendus $KindsApplication
-Test-Kustomize -Nom "test" -Chemin ".\k8s\overlays\test" -NombreAttendu 11 -KindsAttendus $KindsApplication
-Test-Kustomize -Nom "prod" -Chemin ".\k8s\overlays\prod" -NombreAttendu 11 -KindsAttendus $KindsApplication
-Test-Kustomize -Nom "cluster" -Chemin ".\k8s\cluster" -NombreAttendu 1 -KindsAttendus @("StorageClass")
+Test-Kustomize `
+    -Nom "dev" `
+    -Chemin ".\k8s\overlays\dev" `
+    -NombreAttendu 11 `
+    -KindsAttendus $KindsApplication `
+    -ValeursAttendues @{
+        ENVIRONMENT = "dev"
+        SEUIL_TEMPERATURE_C = "8"
+        NIVEAU_JOURNAL = "debug"
+    }
+
+Test-Kustomize `
+    -Nom "test" `
+    -Chemin ".\k8s\overlays\test" `
+    -NombreAttendu 11 `
+    -KindsAttendus $KindsApplication `
+    -ValeursAttendues @{
+        ENVIRONMENT = "test"
+        SEUIL_TEMPERATURE_C = "2"
+        NIVEAU_JOURNAL = "info"
+    }
+
+Test-Kustomize `
+    -Nom "prod" `
+    -Chemin ".\k8s\overlays\prod" `
+    -NombreAttendu 11 `
+    -KindsAttendus $KindsApplication `
+    -ValeursAttendues @{
+        ENVIRONMENT = "prod"
+        SEUIL_TEMPERATURE_C = "4"
+        NIVEAU_JOURNAL = "warn"
+    }
+
+Test-Kustomize `
+    -Nom "cluster" `
+    -Chemin ".\k8s\cluster" `
+    -NombreAttendu 1 `
+    -KindsAttendus @("StorageClass") `
+    -ValeursAttendues @{
+        provisioner = "pd.csi.storage.gke.io"
+        type = "pd-standard"
+        volumeBindingMode = "WaitForFirstConsumer"
+    }
 
 Write-Host ""
 Write-Host "VALIDATION KUBERNETES REUSSIE" -ForegroundColor Green
