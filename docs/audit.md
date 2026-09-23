@@ -59,6 +59,21 @@ Le compte Compute Engine par défaut possède encore le rôle `Editor`, qui est 
 
 À corriger ou à justifier : le rôle `Editor` du compte Compute Engine par défaut doit être vérifié et remplacé par des rôles plus précis s’il est utilisé par l’infrastructure.
 
+### Constat complémentaire
+
+Le compte de service `foodtrack-ci@form-gke-eleve04-42a1.iam.gserviceaccount.com`
+est actuellement utilisé à la fois par le pipeline CI/CD et par les nœuds GKE.
+
+Cette configuration ne sépare pas complètement les usages des comptes de service.
+
+Afin de mieux respecter le principe du moindre privilège, un compte de service
+dédié aux nœuds GKE pourrait être créé avec uniquement les rôles nécessaires
+au fonctionnement des nœuds.
+
+### Résultat
+
+À corriger : séparer l’identité utilisée par la CI/CD de celle utilisée par les nœuds GKE.
+
 ## Pare-feu
 
 ### Règle observée
