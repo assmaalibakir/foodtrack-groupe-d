@@ -30,11 +30,27 @@ Le passage en production n'est jamais automatique. Il est protégé par un envir
 
 Le pipeline a besoin de six informations, stockées comme variables du dépôt (et non comme secrets, puisqu'aucune de ces valeurs n'est confidentielle) : l'identifiant du projet Google Cloud, la région et la zone utilisées, le nom du cluster Kubernetes, ainsi que deux identifiants techniques produits par la configuration Terraform (le fournisseur d'identité fédérée et le compte de service du pipeline). Tant que ces valeurs ne sont pas renseignées, les étapes qui en dépendent sont volontairement ignorées plutôt que de faire échouer le pipeline.
 
-<<<<<<< HEAD
+## Stratégie de versions et de releases
 
+Trois événements différents déclenchent chacun un environnement, de façon indépendante :
 
+| Événement | Environnement déclenché |
+|---|---|
+| Envoi de code sur la branche `develop` | Développement (`foodtrack-dev`) |
+| Fusion de code sur la branche `main` | Test (`foodtrack-test`) |
+| Création d'un tag de version (`v1.0.0`, `v1.1.0`, etc.) | Production (`foodtrack-prod`), après validation manuelle |
 
-## Partie Exploitation ##
+Le code circule librement sur `develop` pendant le développement. Une fois prêt à être testé plus sérieusement, il est fusionné sur `main`, ce qui déclenche automatiquement le déploiement sur l'environnement de test. La mise en production n'est jamais automatique : elle nécessite la création explicite d'un tag suivant le versionnage sémantique (`vMAJEUR.MINEUR.CORRECTIF`), puis l'approbation manuelle d'un membre de l'équipe sur l'environnement GitHub protégé.
+
+### Correctif urgent
+
+Un correctif urgent suit le même chemin que toute autre modification : développement sur une branche dédiée, fusion sur `main` pour validation en test, puis création d'un nouveau tag de version (incrément du numéro de correctif, par exemple `v1.0.1`) pour le déployer en production. Aucun raccourci n'est prévu pour contourner la validation manuelle, y compris en urgence.
+
+### Retour en arrière (rollback)
+
+`kubectl rollout undo` permet de revenir à la version précédente d'un déploiement rapidement. Cette commande suffit lorsque seule l'image du conteneur a changé entre les deux versions. Elle ne suffit plus si la nouvelle version a aussi modifié la configuration (ConfigMap, Secret) ou la structure des données stockées : dans ce cas, revenir uniquement sur l'image applicative sans revenir également sur la configuration associée peut laisser le système dans un état incohérent. Un retour en arrière complet nécessite alors de redéployer explicitement l'ensemble version applicative et configuration correspondant au tag précédent.
+
+## Partie Exploitation
 
 ### Monitoring
 Le monitoring permet de surveiller l'état et les performances de l'application FoodTrack en production
@@ -44,7 +60,7 @@ Le dashboard devra afficher les principales métriques suivantes :
 - CPU
 - Mémoire
 - Pods prêts
-- Taux d’erreurs HTTP
+- Taux d'erreurs HTTP
 - Latence
 
 Un uptime check sera également configuré sur l'adresse publique du portail de production afin de vérifier sa disponibilité
@@ -78,7 +94,7 @@ Il retourne un code de sortie '0' si le service fonctionne correctement et un co
 L'URL est fournie au lancement du script afin de pouvoir utiliser le même script sur plusieurs environnements sans modifier le code.
 
 ### Scripts Bash
-Trois scripts Bash permettent d'automatiser des tâches d'exploitation courantes : 
+Trois scripts Bash permettent d'automatiser des tâches d'exploitation courantes :
 - Le premier script sauvegarde les fichiers de configuration dans un bucket Cloud Storage avec un nom horodaté
 - Le deuxième script supprime les exports de logs âgés de plus de 30 jours afin d'éviter l'accumulation de fichiers inutiles
 - Le troisième script permet de réduire le node pool GKE à zéro pendant les périodes d'inactivité puis de le redémarrer lorsque l'environnement doit être utilisé
@@ -92,29 +108,6 @@ Pour réduire les dépenses, le node pool pourra être arrêté quand l'environn
 Les coûts seront vérifiés avec le calculateur Google Cloud et les données de facturation du projet
 
 ### Audit
-L'audit permet de vérifier que les règles de sécurité du projet sont bien respectées 
-Nous allons contrôler les accès IAM, les règles de pare feu, le bastion, les secrets et les images utilisées. 
+L'audit permet de vérifier que les règles de sécurité du projet sont bien respectées
+Nous allons contrôler les accès IAM, les règles de pare feu, le bastion, les secrets et les images utilisées.
 L'objectif est de repérer les éventuels problèmes, de les corriger et de justifier les choix de sécurité qui ont été fait
-
-
-=======
-## Stratégie de versions et de releases
-
-Trois événements différents déclenchent chacun un environnement, de façon indépendante :
-
-| Événement | Environnement déclenché |
-|---|---|
-| Envoi de code sur la branche `develop` | Développement (`foodtrack-dev`) |
-| Fusion de code sur la branche `main` | Test (`foodtrack-test`) |
-| Création d'un tag de version (`v1.0.0`, `v1.1.0`, etc.) | Production (`foodtrack-prod`), après validation manuelle |
-
-Le code circule librement sur `develop` pendant le développement. Une fois prêt à être testé plus sérieusement, il est fusionné sur `main`, ce qui déclenche automatiquement le déploiement sur l'environnement de test. La mise en production n'est jamais automatique : elle nécessite la création explicite d'un tag suivant le versionnage sémantique (`vMAJEUR.MINEUR.CORRECTIF`), puis l'approbation manuelle d'un membre de l'équipe sur l'environnement GitHub protégé.
-
-### Correctif urgent
-
-Un correctif urgent suit le même chemin que toute autre modification : développement sur une branche dédiée, fusion sur `main` pour validation en test, puis création d'un nouveau tag de version (incrément du numéro de correctif, par exemple `v1.0.1`) pour le déployer en production. Aucun raccourci n'est prévu pour contourner la validation manuelle, y compris en urgence.
-
-### Retour en arrière (rollback)
-
-`kubectl rollout undo` permet de revenir à la version précédente d'un déploiement rapidement. Cette commande suffit lorsque seule l'image du conteneur a changé entre les deux versions. Elle ne suffit plus si la nouvelle version a aussi modifié la configuration (ConfigMap, Secret) ou la structure des données stockées : dans ce cas, revenir uniquement sur l'image applicative sans revenir également sur la configuration associée peut laisser le système dans un état incohérent. Un retour en arrière complet nécessite alors de redéployer explicitement l'ensemble version applicative et configuration correspondant au tag précédent.
->>>>>>> origin/main
