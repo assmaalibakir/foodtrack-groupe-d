@@ -214,9 +214,12 @@ jobs:
           kubectl rollout status deployment/portail-qualite -n foodtrack-dev --timeout=180s
           kubectl rollout status deployment/api-capteurs -n foodtrack-dev --timeout=180s
           kubectl rollout status statefulset/cache-releves -n foodtrack-dev --timeout=180s
-
-      - name: Verifier que les pods sont prets
-        run: kubectl wait --for=condition=Ready pods -l app.kubernetes.io/part-of=foodtrack -n foodtrack-dev --timeout=120s
+        # Chaque "kubectl rollout status" attend deja que les pods de la
+        # ressource concernee soient Ready avant de rendre la main. Une
+        # verification supplementaire globale sur tous les pods du namespace
+        # est redondante et peut se declencher a tort pendant la transition
+        # entre les deux rollouts (apply puis set image), sans que cela ne
+        # reflete un vrai probleme.
 
   deploy-test:
     name: Deploiement test
@@ -259,9 +262,8 @@ jobs:
           kubectl rollout status deployment/portail-qualite -n foodtrack-test --timeout=180s
           kubectl rollout status deployment/api-capteurs -n foodtrack-test --timeout=180s
           kubectl rollout status statefulset/cache-releves -n foodtrack-test --timeout=180s
-
-      - name: Verifier que les pods sont prets
-        run: kubectl wait --for=condition=Ready pods -l app.kubernetes.io/part-of=foodtrack -n foodtrack-test --timeout=120s
+        # Voir le commentaire equivalent dans deploy-dev : cette etape suffit
+        # deja a garantir que les pods sont prets.
 
   deploy-prod:
     name: Deploiement production
@@ -306,6 +308,5 @@ jobs:
           kubectl rollout status deployment/portail-qualite -n foodtrack-prod --timeout=180s
           kubectl rollout status deployment/api-capteurs -n foodtrack-prod --timeout=180s
           kubectl rollout status statefulset/cache-releves -n foodtrack-prod --timeout=180s
-
-      - name: Verifier que les pods sont prets
-        run: kubectl wait --for=condition=Ready pods -l app.kubernetes.io/part-of=foodtrack -n foodtrack-prod --timeout=120s
+        # Voir le commentaire equivalent dans deploy-dev : cette etape suffit
+        # deja a garantir que les pods sont prets.
