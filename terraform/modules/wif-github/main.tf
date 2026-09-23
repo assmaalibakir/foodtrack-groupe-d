@@ -33,7 +33,7 @@ data "google_project" "courant" {
 # ---------------------------------------------------------------------------
 resource "google_iam_workload_identity_pool" "github" {
   project                   = var.project
-  workload_identity_pool_id = var.pool_id
+  workload_identity_pool_id = "github-pool-dev"
   display_name              = "Pool GitHub Actions"
   description               = "Identites federees des executions GitHub Actions du projet FoodTrack"
 }
