@@ -1,15 +1,12 @@
 # Cluster GKE (mode VPC natif et suppression du node pool par défaut)
 resource "google_container_cluster" "primary" {
   name                     = "foodtrack-${var.equipe}-cluster"
-  location                 = var.region
+  location                 = var.zone
   remove_default_node_pool = true
   initial_node_count       = 1
 
   # Permet de débloquer le 'terraform destroy'[cite: 10]
   deletion_protection = false
-
-  # Évite la zone europe-west4-c sujette aux pénuries de ressources (GCE_STOCKOUT)[cite: 8]
-  node_locations = [var.zone]
 
   network    = var.vpc_id
   subnetwork = var.subnet_id
@@ -36,7 +33,7 @@ resource "google_container_cluster" "primary" {
 # Node Pool personnalisé (pd-standard + e2-medium)
 resource "google_container_node_pool" "primary_nodes" {
   name       = "foodtrack-${var.equipe}-pool"
-  location   = var.region
+  location   = var.zone
   cluster    = google_container_cluster.primary.name
   node_count = 1
 
