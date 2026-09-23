@@ -8,8 +8,7 @@ set -euo pipefail
 
 # Nom du bucket contenant les exports de logs
 # Cette valeur sera remplacee quand le vrai bucket sera connu
-BUCKET_NAME="A_REMPLACER"
-
+BUCKET_NAME="foodtrack-d-logs-dev"
 # Nombre de jours de conservation
 RETENTION_DAYS=30
 
