@@ -58,3 +58,27 @@ Le compte Compute Engine par défaut possède encore le rôle `Editor`, qui est 
 ### Résultat
 
 À corriger ou à justifier : le rôle `Editor` du compte Compute Engine par défaut doit être vérifié et remplacé par des rôles plus précis s’il est utilisé par l’infrastructure.
+
+## Pare-feu
+
+### Règle observée
+
+Une règle de pare-feu a été créée pour permettre l’accès SSH au bastion.
+
+- Nom de la règle : `foodtrack-d-bastion`
+- Protocole : TCP
+- Port autorisé : `22`
+- Cible : ressources portant le tag `bastion-node`
+- Source autorisée : `35.235.240.0/20`
+
+### Constat
+
+La règle SSH n’est pas ouverte à `0.0.0.0/0`.
+
+L’accès est limité à une plage d’adresses précise et cible uniquement le bastion.
+
+Cette configuration permet de réduire l’exposition du service SSH.
+
+### Résultat
+
+Conforme sous réserve de vérifier que cette règle correspond bien au mode d’accès retenu pour l’administration du bastion.
