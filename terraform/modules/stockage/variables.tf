@@ -1,6 +1,6 @@
 variable "project" { 
   type    = string
-  default = "foodtrack-equipe-d"
+  default = "form-gke-eleve04-42a1"
 }
 variable "equipe" {
   type    = string

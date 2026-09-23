@@ -1,7 +1,7 @@
 variable "project" {
   type        = string
   description = "ID du projet GCP"
-  default     = "foodtrack-equipe-d"
+  default     = "form-gke-eleve04-42a1"
 }
 
 variable "region" {

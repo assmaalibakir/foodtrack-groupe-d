@@ -11,7 +11,7 @@ terraform {
   # Configuration du backend distant GCS (Bucket créé au préalable via gcloud)
   backend "gcs" {
     # Le nom du bucket est passé lors du 'terraform init -backend-config=...' ou renseigné ici
-    bucket = "foodtrack-d-tfstate-foodtrack-equipe-d"
+    bucket = "foodtrack-d-tfstate-form-gke-eleve04-42a1"
     prefix = "terraform/state"
   }
 }
@@ -47,4 +47,13 @@ module "compute" {
   region      = var.region
   zone        = var.zone
   equipe      = var.equipe
+}
+
+# --- Module wif-github ---
+module "wif-github" {
+  source = "./modules/wif-github"
+
+  project      = var.project
+  github_owner = "assmaalibakir"
+  github_repo  = "foodtrack-groupe-d"
 }

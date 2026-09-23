@@ -10,3 +10,4 @@ output "subnet_name" {
 output "pods_ip_name" { value = "k8s-pods" }
 output "services_ip_name" { value = "k8s-services" }
 output "bastion_tag" { value = "bastion-node" }
+

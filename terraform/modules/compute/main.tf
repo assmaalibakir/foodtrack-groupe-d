@@ -5,12 +5,18 @@ resource "google_container_cluster" "primary" {
   remove_default_node_pool = true
   initial_node_count       = 1
 
+  # Permet de débloquer le 'terraform destroy'[cite: 10]
+  deletion_protection = false
+
+  # Évite la zone europe-west4-c sujette aux pénuries de ressources (GCE_STOCKOUT)[cite: 8]
+  node_locations = [var.zone]
+
   network    = var.vpc_id
   subnetwork = var.subnet_id
 
   ip_allocation_policy {
-    cluster_secondary_range_name  = var.pods_ip_name
-    services_secondary_range_name = var.services_ip_name
+    cluster_secondary_range_name  = "k8s-pods"
+    services_secondary_range_name = "k8s-services"
   }
 
   private_cluster_config {
