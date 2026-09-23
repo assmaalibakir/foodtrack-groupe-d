@@ -25,7 +25,7 @@ rm -rf "${BACKUP_DIR}"
 # Cree le dossier temporaire
 mkdir -p "${BACKUP_DIR}"
 
-# Copie ici les fichiers de configuration a sauvegarder
+# A copier ici les fichiers de configuration a sauvegarder
 # Cette partie sera completee quand le depot final sera pret
 # Exemple :
 # cp -r ../manifests "${BACKUP_DIR}/"
