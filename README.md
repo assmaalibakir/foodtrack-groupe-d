@@ -111,3 +111,25 @@ Les coûts seront vérifiés avec le calculateur Google Cloud et les données de
 L'audit permet de vérifier que les règles de sécurité du projet sont bien respectées
 Nous allons contrôler les accès IAM, les règles de pare feu, le bastion, les secrets et les images utilisées.
 L'objectif est de repérer les éventuels problèmes, de les corriger et de justifier les choix de sécurité qui ont été fait
+
+## Retour d'expérience : premier déploiement réel
+
+Cette section documente les problèmes rencontrés et corrigés lors du premier passage complet du pipeline sur l'infrastructure réelle, à titre de traçabilité et de retour d'expérience.
+
+### Seuils de sécurité des images fournies
+
+Le scan de sécurité de l'image `redis:8.10.1` a d'abord échoué sur 43 failles classées HIGH, toutes situées dans des paquets système Debian embarqués dans l'image (`util-linux`, `ncurses`, `perl-base`), sans rapport avec le fonctionnement de Redis lui-même. Le seuil de blocage a été restreint à CRITICAL pour les images fournies, dont la version est imposée et ne peut pas être changée.
+
+Un second scan a ensuite bloqué sur l'image `nginx:1.30.5`, avec une faille réelle classée CRITICAL (`CVE-2026-6653`, dans la bibliothèque `libxml2`), mais sans correctif disponible à ce jour. L'option `ignore-unfixed` a été ajoutée : le pipeline bloque désormais uniquement sur les failles critiques pour lesquelles un correctif existe et n'a pas été appliqué.
+
+### Dimensionnement du cluster
+
+Le premier déploiement réel a révélé que le node pool, dimensionné pour un seul environnement, ne suffisait pas à héberger les trois environnements (dev, test, prod) simultanément : les pods restaient bloqués en attente faute de CPU disponible. Le plafond de l'autoscaling a été augmenté progressivement (de 3 à 5 nœuds) au fil des tests, en complément d'une réduction des ressources demandées par le cache en environnements dev et test.
+
+### Configuration et données manquantes
+
+Deux erreurs de configuration ont empêché le démarrage de certains pods : une clé manquante dans le Secret utilisé par le cache (`CACHE_PASSWORD`), et un caractère invisible (BOM) en tête du fichier de configuration Nginx, introduit par un enregistrement depuis un éditeur Windows, qui empêchait Nginx de démarrer avec l'erreur `unknown directive "server"`.
+
+### Fiabilisation du pipeline
+
+Une étape de vérification finale, redondante avec les contrôles de fin de déploiement déjà effectués individuellement pour chaque ressource, provoquait des échecs ponctuels en se déclenchant pendant la brève transition entre les deux mises à jour successives d'un déploiement (application des manifestes, puis mise à jour de l'image). Cette étape a été supprimée, les contrôles individuels suffisant à garantir la disponibilité des services.
