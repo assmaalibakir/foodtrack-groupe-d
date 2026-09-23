@@ -1,4 +1,4 @@
-﻿param(
+param(
     [Parameter(Mandatory = $true)]
     [ValidateSet("dev", "test", "prod")]
     [string]$Environnement
@@ -11,6 +11,19 @@ $Namespace = "foodtrack-$Environnement"
 $Overlay = Join-Path $RacineProjet "k8s\overlays\$Environnement"
 $NamespaceYaml = Join-Path $Overlay "namespace.yaml"
 $ConfigurationCluster = Join-Path $RacineProjet "k8s\cluster"
+
+function Wait-Workload {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Ressource
+    )
+
+    & kubectl rollout status $Ressource -n $Namespace --timeout=5m
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Echec du rollout de $Ressource dans $Namespace."
+    }
+}
 
 $Contexte = & kubectl config current-context 2>$null
 
@@ -64,14 +77,18 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host ""
 Write-Host "Attente des workloads..."
 
-& kubectl rollout status deployment/portail-qualite -n $Namespace --timeout=5m
-& kubectl rollout status deployment/api-capteurs -n $Namespace --timeout=5m
-& kubectl rollout status statefulset/cache-releves -n $Namespace --timeout=5m
+Wait-Workload -Ressource "deployment/portail-qualite"
+Wait-Workload -Ressource "deployment/api-capteurs"
+Wait-Workload -Ressource "statefulset/cache-releves"
 
 Write-Host ""
 Write-Host "Etat final..."
 
 & kubectl get pods,services,pvc,hpa,ingress -n $Namespace
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Impossible de lire l'etat final de $Namespace."
+}
 
 Write-Host ""
 Write-Host "DEPLOIEMENT $Environnement TERMINE" -ForegroundColor Green
