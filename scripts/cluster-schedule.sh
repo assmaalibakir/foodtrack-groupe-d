@@ -7,13 +7,13 @@
 set -euo pipefail
 
 # Nom du cluster GKE
-CLUSTER_NAME="A_REMPLACER"
+CLUSTER_NAME="foodtrack-d-cluster"
 
 # Nom du node pool
-NODE_POOL_NAME="A_REMPLACER"
+NODE_POOL_NAME="foodtrack-d-pool"
 
 # Zone du cluster
-ZONE="A_REMPLACER"
+ZONE="europe-west4-b"
 
 # Action demandee : stop ou start
 ACTION="${1:-}"
