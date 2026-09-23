@@ -11,7 +11,6 @@ et les risques qui restent acceptes.
 L'etat final devra etre court, factuel et base sur l'infrastructure
 reellement deployee.
 
-
 ## IAM
 
 L'audit IAM permettra de verifier les utilisateurs, les comptes de service
@@ -32,3 +31,30 @@ et les roles presents dans le projet.
 gcloud projects get-iam-policy "$PROJECT" \
   --flatten="bindings[].members" \
   --format="table(bindings.role,bindings.members)"
+```
+
+
+### Comptes de service observés
+
+Deux comptes de service actifs ont été identifiés dans le projet.
+
+- `foodtrack-ci@form-gke-eleve04-42a1.iam.gserviceaccount.com`
+
+  - Nom : Compte de service du pipeline FoodTrack
+  - Usage : automatisations CI/CD avec Workload Identity Federation et GitHub Actions
+  - Rôles observés : Développeur Kubernetes Engine et Rédacteur Artifact Registry
+- `944188075327-compute@developer.gserviceaccount.com`
+
+  - Nom : Compute Engine default service account
+  - Usage : compte créé automatiquement par GCP et utilisé par défaut par certaines VM ou certains nœuds GKE si aucun compte spécifique n’est défini
+  - Rôle observé : Editor
+
+### Constat
+
+Le compte `foodtrack-ci` est dédié à un usage précis lié à la CI/CD.
+
+Le compte Compute Engine par défaut possède encore le rôle `Editor`, qui est trop large par rapport au principe du moindre privilège.
+
+### Résultat
+
+À corriger ou à justifier : le rôle `Editor` du compte Compute Engine par défaut doit être vérifié et remplacé par des rôles plus précis s’il est utilisé par l’infrastructure.
