@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - workloads.yaml
+  - services.yaml
+  - ingress.yaml
+  - backendconfig.yaml
+  - hpa.yaml
+patches:
+  - path: service-portail-patch.yaml
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: foodtrack
+    includeTemplates: true
+configMapGenerator:
+  - name: foodtrack-config
+    files:
+      - default.conf=nginx.conf
+generatorOptions:
+  disableNameSuffixHash: true

@@ -1,0 +1,7 @@
+﻿apiVersion: v1
+kind: Namespace
+metadata:
+  name: foodtrack-test
+  labels:
+    app.kubernetes.io/part-of: foodtrack
+    foodtrack.example/env: test

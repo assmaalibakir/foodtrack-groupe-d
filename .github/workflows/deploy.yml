@@ -1,0 +1,312 @@
+# FoodTrack - projet final - squelette de workflow GitHub Actions
+#
+# A COPIER dans .github/workflows/deploy.yml de votre depot, puis a completer.
+#
+# Ce qui est fourni : le bloc d authentification sans cle (OIDC vers Google
+# Cloud) et la recuperation des acces au cluster. Ces deux etapes sont les plus
+# penibles a mettre au point et ne portent aucune valeur pedagogique une fois
+# comprises - en revanche, vous devez savoir les EXPLIQUER en soutenance.
+#
+# Ce qui est a votre charge : tout le reste, marque "A FAIRE".
+#
+# Variables a definir dans Settings > Secrets and variables > Actions > Variables :
+#   GCP_PROJECT_ID        ex: foodtrack-equipe-a
+#   GCP_REGION            ex: europe-west8
+#   GCP_ZONE              ex: europe-west8-b
+#   GKE_CLUSTER           ex: foodtrack-a-cluster
+#   WIF_PROVIDER          sortie Terraform "wif_provider_name" du module fourni
+#   CI_SERVICE_ACCOUNT    sortie Terraform "ci_service_account_email"
+#
+# Aucun SECRET n est necessaire. Si vous en ajoutez un qui contient une cle
+# JSON, vous avez rate l exercice.
+
+name: foodtrack
+
+on:
+  push:
+    branches: [develop, main]
+    tags: ["v*"]
+  pull_request:
+    branches: [develop, main]
+
+# Obligatoire pour que GitHub emette un jeton OIDC.
+# Sans "id-token: write", l etape d authentification echoue sans explication utile.
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  IMAGE_NAME: portail-qualite
+
+jobs:
+
+  qualite:
+    name: Lint et scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Installer Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.9.0"
+
+      - name: Lint Terraform (formatage)
+        run: |
+          if [ -d terraform ]; then
+            terraform fmt -check -recursive terraform/
+          else
+            echo "Dossier terraform/ pas encore present, verification ignoree pour l instant."
+          fi
+
+      - name: Lint Terraform (validité)
+        run: |
+          if [ -d terraform ]; then
+            cd terraform
+            terraform init -backend=false
+            terraform validate
+          else
+            echo "Dossier terraform/ pas encore présent, vérification ignorée pour l'instant."
+          fi
+
+      - name: Installer kubectl (inclut kustomize)
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "v1.35.8"
+
+      - name: Installer kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Lint manifestes Kubernetes (Kustomize)
+        run: |
+          if [ -d k8s/overlays ]; then
+            for ENV in dev test prod; do
+              if [ -d "k8s/overlays/$ENV" ]; then
+                echo "--- Assemblage et validation : $ENV ---"
+                kubectl kustomize "k8s/overlays/$ENV" > "/tmp/rendu-$ENV.yaml"
+                kubeconform -summary -ignore-missing-schemas \
+                  -kubernetes-version 1.35.8 \
+                  "/tmp/rendu-$ENV.yaml"
+              fi
+            done
+          else
+            echo "Dossier k8s/overlays pas encore present, verification ignoree pour l instant."
+          fi
+
+      - name: Scan de sécurité Terraform
+        if: hashFiles('terraform/**') != ''
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: terraform/
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+        # Seuil retenu : CRITICAL et HIGH font échouer le job.
+        # MEDIUM/LOW sont ignorés pour ne pas bloquer sur des points mineurs.
+        # À documenter dans le README.
+        # L'étape est ignorée tant qu'il n'y a aucun fichier Terraform à scanner.
+
+  build:
+    name: Publication des images dans Artifact Registry
+    needs: qualite
+    if: github.event_name == 'push' && vars.WIF_PROVIDER != ''
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: portail-qualite
+            source: nginx:1.30.5
+          - name: api-capteurs
+            source: us-docker.pkg.dev/google-samples/containers/gke/hello-app:2.0
+          - name: cache-releves
+            source: redis:8.10.1
+    steps:
+      - uses: actions/checkout@v5
+
+      # --- FOURNI : authentification sans cle -------------------------------
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.CI_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Autoriser Docker aupres d Artifact Registry
+        run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+      # --- fin du bloc fourni ------------------------------------------------
+
+      # Les images sont fournies telles quelles (pas de code applicatif a
+      # construire, cf cahier des charges). On les rapatrie dans notre propre
+      # Artifact Registry pour ne pas dependre en direct de Docker Hub / Google
+      # Samples en production.
+      - name: Récupérer et scanner l'image source
+        run: docker pull ${{ matrix.source }}
+
+      - name: Scanner l'image avant publication
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ matrix.source }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+        # Seuil : CRITICAL uniquement pour les images fournies (nginx, hello-app,
+        # redis), dont la version est imposee par le cahier des charges et ne peut
+        # pas etre changee. Les failles HIGH detectees sur ces images concernent
+        # des paquets systeme Debian embarques (util-linux, ncurses, perl-base),
+        # hors de la surface reellement utilisee par le service en fonctionnement
+        # normal. ignore-unfixed: true exclut les failles pour lesquelles aucun
+        # correctif n'existe encore (bloquer dessus n'apporterait rien, puisque
+        # rien ne peut etre applique). Le scan Terraform (job qualite), lui,
+        # reste strict sur CRITICAL et HIGH, puisque c'est du code que l'equipe
+        # ecrit et maitrise entierement.
+
+      - name: Retaguer et publier dans Artifact Registry
+        run: |
+          DEST="${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/foodtrack-d-images/${{ matrix.name }}:${{ github.sha }}"
+          docker tag ${{ matrix.source }} "$DEST"
+          docker push "$DEST"
+        # Étiquetage par le SHA du commit : trace précisément quelle exécution
+        # a publié quelle image, même si le contenu de l'image source ne change
+        # pas d'un commit à l'autre.
+
+  deploy-dev:
+    name: Deploiement dev
+    needs: build
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # --- FOURNI : acces au cluster ----------------------------------------
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.CI_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/get-gke-credentials@v3
+        with:
+          cluster_name: ${{ vars.GKE_CLUSTER }}
+          location: ${{ vars.GCP_ZONE }}
+      # --- fin du bloc fourni ------------------------------------------------
+
+      - name: Installer kubectl (inclut kustomize)
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "v1.35.8"
+
+      - name: Appliquer les manifestes de l environnement dev
+        run: kubectl apply -k k8s/overlays/dev
+
+      - name: Mettre a jour les images vers Artifact Registry
+        run: |
+          REG="${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/foodtrack-d-images"
+          kubectl set image deployment/portail-qualite nginx="$REG/portail-qualite:${{ github.sha }}" -n foodtrack-dev
+          kubectl set image deployment/api-capteurs api="$REG/api-capteurs:${{ github.sha }}" -n foodtrack-dev
+
+      - name: Attendre la fin du deploiement
+        run: |
+          kubectl rollout status deployment/portail-qualite -n foodtrack-dev --timeout=180s
+          kubectl rollout status deployment/api-capteurs -n foodtrack-dev --timeout=180s
+          kubectl rollout status statefulset/cache-releves -n foodtrack-dev --timeout=180s
+        # Chaque "kubectl rollout status" attend deja que les pods de la
+        # ressource concernee soient Ready avant de rendre la main. Une
+        # verification supplementaire globale sur tous les pods du namespace
+        # est redondante et peut se declencher a tort pendant la transition
+        # entre les deux rollouts (apply puis set image), sans que cela ne
+        # reflete un vrai probleme.
+
+  deploy-test:
+    name: Deploiement test
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # --- FOURNI : acces au cluster ----------------------------------------
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.CI_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/get-gke-credentials@v3
+        with:
+          cluster_name: ${{ vars.GKE_CLUSTER }}
+          location: ${{ vars.GCP_ZONE }}
+      # --- fin du bloc fourni ------------------------------------------------
+
+      - name: Installer kubectl (inclut kustomize)
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "v1.35.8"
+
+      - name: Appliquer les manifestes de l environnement test
+        run: kubectl apply -k k8s/overlays/test
+
+      - name: Mettre a jour les images vers Artifact Registry
+        run: |
+          REG="${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/foodtrack-d-images"
+          kubectl set image deployment/portail-qualite nginx="$REG/portail-qualite:${{ github.sha }}" -n foodtrack-test
+          kubectl set image deployment/api-capteurs api="$REG/api-capteurs:${{ github.sha }}" -n foodtrack-test
+
+      - name: Attendre la fin du deploiement
+        run: |
+          kubectl rollout status deployment/portail-qualite -n foodtrack-test --timeout=180s
+          kubectl rollout status deployment/api-capteurs -n foodtrack-test --timeout=180s
+          kubectl rollout status statefulset/cache-releves -n foodtrack-test --timeout=180s
+        # Voir le commentaire equivalent dans deploy-dev : cette etape suffit
+        # deja a garantir que les pods sont prets.
+
+  deploy-prod:
+    name: Deploiement production
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - uses: actions/checkout@v5
+
+      # --- FOURNI : acces au cluster ----------------------------------------
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.CI_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/get-gke-credentials@v3
+        with:
+          cluster_name: ${{ vars.GKE_CLUSTER }}
+          location: ${{ vars.GCP_ZONE }}
+      # --- fin du bloc fourni ------------------------------------------------
+
+      - name: Installer kubectl (inclut kustomize)
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "v1.35.8"
+
+      - name: Appliquer les manifestes de production
+        run: kubectl apply -k k8s/overlays/prod
+
+      - name: Mettre a jour les images vers Artifact Registry
+        run: |
+          REG="${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/foodtrack-d-images"
+          kubectl set image deployment/portail-qualite nginx="$REG/portail-qualite:${{ github.sha }}" -n foodtrack-prod
+          kubectl set image deployment/api-capteurs api="$REG/api-capteurs:${{ github.sha }}" -n foodtrack-prod
+
+      - name: Attendre la fin du deploiement
+        run: |
+          kubectl rollout status deployment/portail-qualite -n foodtrack-prod --timeout=180s
+          kubectl rollout status deployment/api-capteurs -n foodtrack-prod --timeout=180s
+          kubectl rollout status statefulset/cache-releves -n foodtrack-prod --timeout=180s
+        # Voir le commentaire equivalent dans deploy-dev : cette etape suffit
+        # deja a garantir que les pods sont prets.

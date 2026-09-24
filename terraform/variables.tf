@@ -5,13 +5,13 @@ variable "project" {
 }
 
 variable "region" {
-  type        = string
-  default     = "europe-west4"
+  type    = string
+  default = "europe-west4"
 }
 
 variable "zone" {
-  type        = string
-  default     = "europe-west4-b"
+  type    = string
+  default = "europe-west4-b"
 }
 
 variable "environment" {
@@ -21,6 +21,6 @@ variable "environment" {
 }
 
 variable "equipe" {
-  type        = string
-  default     = "d"
+  type    = string
+  default = "d"
 }

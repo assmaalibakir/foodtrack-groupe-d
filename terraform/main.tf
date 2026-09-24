@@ -28,8 +28,8 @@ provider "google" {
 module "reseau" {
   source = "./modules/reseau"
 
-  region      = var.region
-  equipe      = var.equipe
+  region = var.region
+  equipe = var.equipe
 }
 
 # --- Module Stockage ---
