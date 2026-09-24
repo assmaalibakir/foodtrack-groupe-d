@@ -72,7 +72,7 @@ jobs:
       - name: Installer kubectl (inclut kustomize)
         uses: azure/setup-kubectl@v4
         with:
-          version: "v1.30.0"
+          version: "v1.35.8"
 
       - name: Installer kubeconform
         run: |
@@ -87,7 +87,7 @@ jobs:
                 echo "--- Assemblage et validation : $ENV ---"
                 kubectl kustomize "k8s/overlays/$ENV" > "/tmp/rendu-$ENV.yaml"
                 kubeconform -summary -ignore-missing-schemas \
-                  -kubernetes-version 1.30.0 \
+                  -kubernetes-version 1.35.8 \
                   "/tmp/rendu-$ENV.yaml"
               fi
             done
@@ -198,7 +198,7 @@ jobs:
       - name: Installer kubectl (inclut kustomize)
         uses: azure/setup-kubectl@v4
         with:
-          version: "v1.30.0"
+          version: "v1.35.8"
 
       - name: Appliquer les manifestes de l environnement dev
         run: kubectl apply -k k8s/overlays/dev
@@ -246,7 +246,7 @@ jobs:
       - name: Installer kubectl (inclut kustomize)
         uses: azure/setup-kubectl@v4
         with:
-          version: "v1.30.0"
+          version: "v1.35.8"
 
       - name: Appliquer les manifestes de l environnement test
         run: kubectl apply -k k8s/overlays/test
@@ -292,7 +292,7 @@ jobs:
       - name: Installer kubectl (inclut kustomize)
         uses: azure/setup-kubectl@v4
         with:
-          version: "v1.30.0"
+          version: "v1.35.8"
 
       - name: Appliquer les manifestes de production
         run: kubectl apply -k k8s/overlays/prod
