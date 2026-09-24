@@ -60,7 +60,7 @@ gcloud config set compute/zone "$ZONE"`
 Initialisez le backend GCS et téléchargez les fournisseurs :
 bash `terraform init`
 
-3. Validation et Planification
+2. Validation et Planification
 
 Vérifiez la validité de la syntaxe et prévisualisez les modifications :
 
