@@ -25,13 +25,13 @@ Toutes les ressources respectent la convention de nommage imposée :
 
 | Ressource | Convention de nom |
 |---|---|
-| VPC | foodtrack-<equipe>-vpc |
-| Sous-réseau | foodtrack-<equipe>-subnet |
-| Cluster GKE | foodtrack-<equipe>-cluster |
-| Node pool GKE | foodtrack-<equipe>-pool |
-| Bastion VM | foodtrack-<equipe>-bastion |
-| Bucket State Terraform | foodtrack-<equipe>-tfstate-<project-id> |
-| Dépôt d'images | foodtrack-<equipe>-images |
+| VPC | foodtrack-d-vpc |
+| Sous-réseau | foodtrack-d-subnet |
+| Cluster GKE | foodtrack-d-cluster |
+| Node pool GKE | foodtrack-d-pool |
+| Bastion VM | foodtrack-d-bastion |
+| Bucket State Terraform | foodtrack-d-tfstate-form-gke-eleve04-42a1 |
+| Dépôt d'images | foodtrack-d-images |
 | Namespaces Kubernetes | foodtrack-dev, foodtrack-test, foodtrack-prod |
 
 🛠 Prérequis
