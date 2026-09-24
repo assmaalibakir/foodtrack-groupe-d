@@ -133,3 +133,18 @@ Deux erreurs de configuration ont empêché le démarrage de certains pods : une
 ### Fiabilisation du pipeline
 
 Une étape de vérification finale, redondante avec les contrôles de fin de déploiement déjà effectués individuellement pour chaque ressource, provoquait des échecs ponctuels en se déclenchant pendant la brève transition entre les deux mises à jour successives d'un déploiement (application des manifestes, puis mise à jour de l'image). Cette étape a été supprimée, les contrôles individuels suffisant à garantir la disponibilité des services.
+
+## Exception documentée : création manuelle du bucket de state Terraform
+
+L'ensemble de l'infrastructure de ce projet est géré par Terraform, à une seule exception près, assumée et documentée ici : le bucket Cloud Storage qui héberge le fichier d'état Terraform (`state`) a été créé manuellement, via une commande `gcloud`, avant le tout premier `terraform init`.
+
+Cette exception est nécessaire pour une raison structurelle : Terraform a besoin que ce bucket existe déjà pour pouvoir s'y connecter et y stocker son état (configuration du bloc `backend "gcs"` dans `terraform/main.tf`). Il ne peut donc pas créer lui-même la ressource qui lui sert de mémoire, ce serait un problème de dépendance circulaire (« l'œuf et la poule »).
+
+Commandes utilisées pour cette unique création manuelle :
+```bash
+gcloud storage buckets create gs://foodtrack-d-tfstate-foodtrack-equipe-d \
+  --location=europe-west4 --uniform-bucket-level-access
+gcloud storage buckets update gs://foodtrack-d-tfstate-foodtrack-equipe-d --versioning
+```
+
+Le versionnage est activé sur ce bucket pour permettre de revenir à une version antérieure du state en cas de corruption ou de mauvaise manipulation. Aucune autre ressource du projet n'est créée en dehors de Terraform.
