@@ -13,29 +13,66 @@ le pare-feu, le bastion, le plan de contrôle GKE, les secrets et les images.
 
 ### Constat
 
-Le pipeline CI/CD utilise le compte de service :
+Le compte de service suivant est utilisé par le projet :
 
 `foodtrack-ci@form-gke-eleve04-42a1.iam.gserviceaccount.com`
 
-Les rôles attribués sont :
+Les rôles observés sont :
 
 - `roles/artifactregistry.writer`
 - `roles/container.developer`
 
+Ce compte est utilisé par le pipeline CI/CD avec Workload Identity Federation.
+
+La configuration du node pool GKE a également permis de vérifier que
+`foodtrack-ci` est utilisé par les nœuds du cluster.
+
+Le même compte de service est donc utilisé pour deux usages différents :
+
+- Le pipeline CI/CD.
+- Les nœuds GKE.
+
+Cette configuration fonctionne, mais elle ne sépare pas complètement
+les permissions selon les usages.
+
+Une amélioration serait de créer un compte de service dédié aux nœuds GKE
+avec uniquement les permissions nécessaires à leur fonctionnement.
+
+Le compte Compute Engine par défaut existe également dans le projet et possède
+le rôle `Editor`.
+
+Il n'est cependant pas le compte de service attaché au node pool observé.
+
+### Résultat
+
+À améliorer : séparer le compte utilisé par la CI/CD de celui utilisé par
+les nœuds GKE afin de mieux respecter le principe du moindre privilège.
+
+Le rôle `Editor` du compte Compute Engine par défaut reste également un point
+à surveiller car il donne des permissions très larges.
+
+## Workload Identity Federation
+
+### Constat
+
 L'authentification entre GitHub Actions et Google Cloud utilise
 Workload Identity Federation.
 
-Le pool utilisé est `github-pool-dev` et il est restreint au dépôt :
+Le pool utilisé est :
+
+`github-pool-dev`
+
+Il est restreint au dépôt :
 
 `assmaalibakir/foodtrack-groupe-d`
 
-Aucune clé JSON de compte de service n'est stockée dans le dépôt
+Aucune clé JSON permanente de compte de service n'est stockée dans le dépôt
 ou dans GitHub Actions.
 
 ### Résultat
 
-Conforme : le pipeline utilise une authentification temporaire avec WIF
-et ne dépend pas d'une clé JSON permanente.
+Conforme : l'authentification du pipeline utilise des jetons temporaires
+et ne repose pas sur une clé JSON permanente.
 
 ## Pare-feu
 
@@ -76,7 +113,9 @@ par mot de passe est désactivée.
 
 ### Constat
 
-Le plan de contrôle GKE reste accessible depuis `0.0.0.0/0`.
+Le plan de contrôle GKE reste accessible depuis :
+
+`0.0.0.0/0`
 
 Cette configuration a été détectée par Trivy avec la règle :
 
@@ -89,15 +128,14 @@ GitHub Actions utilisent des adresses IP dynamiques qui peuvent changer
 La sécurité de l'accès repose donc principalement sur IAM et
 Workload Identity Federation.
 
-Cette exception est documentée directement dans le code Terraform
-avec la règle :
+Cette exception est documentée directement dans le code Terraform avec :
 
 `# trivy:ignore:GCP-0053`
 
 ### Résultat
 
 Exception documentée : le plan de contrôle reste exposé publiquement,
-mais l'accès au cluster nécessite une authentification IAM/WIF.
+mais son utilisation nécessite une authentification IAM/WIF.
 
 Ce choix augmente l'exposition réseau et constitue un compromis lié
 au fonctionnement du pipeline CI/CD.
@@ -192,14 +230,14 @@ Le tag `latest` n'est pas utilisé.
 Les scans des images fournies utilisent un seuil `CRITICAL`
 avec l'option `ignore-unfixed`.
 
-Le pipeline échoue donc lorsqu'une vulnérabilité critique disposant
+Le pipeline échoue lorsqu'une vulnérabilité critique disposant
 d'un correctif est détectée.
 
 ## Scan des configurations Kubernetes
 
 ### Constat
 
-Trivy a également identifié deux problèmes de niveau HIGH sur les composants
+Trivy a identifié deux problèmes de niveau HIGH sur les composants
 API, portail et cache dans les environnements DEV, TEST et PROD.
 
 - `KSV-0014` : le système de fichiers racine n'est pas configuré en lecture seule.
@@ -245,15 +283,19 @@ Exception documentée et justifiée.
 
 ## Conclusion
 
-L'audit a permis d'identifier et de corriger plusieurs problèmes de sécurité.
+L'audit a permis de vérifier les principaux éléments de sécurité du projet.
 
 L'authentification du pipeline utilise Workload Identity Federation sans clé JSON,
-les accès SSH sont restreints, les secrets ne sont pas stockés en clair et
-les images utilisent des versions identifiables.
+les accès SSH sont restreints, les secrets ne sont pas stockés en clair
+et les images utilisent des versions identifiables.
 
 Les scans Trivy sont intégrés au pipeline et ont permis de détecter plusieurs
 mauvaises configurations.
 
-Le principal compromis restant concerne l'exposition publique du plan de contrôle
+Des améliorations restent possibles, notamment la séparation du compte
+de service utilisé par la CI/CD et les nœuds GKE, ainsi que le renforcement
+du contexte de sécurité des conteneurs.
+
+Le principal compromis réseau concerne l'exposition publique du plan de contrôle
 GKE, conservée pour permettre le fonctionnement du pipeline GitHub Actions
 et documentée comme exception.
