@@ -1,9 +1,9 @@
 variable "region" {
-    type    = string
-    default = "europe-west4"
+  type    = string
+  default = "europe-west4"
 }
 
 variable "equipe" {
-  type        = string
-  default     = "d"
+  type    = string
+  default = "d"
 }

@@ -43,9 +43,9 @@ resource "google_container_node_pool" "primary_nodes" {
   }
 
   node_config {
-    machine_type = "e2-medium"
-    disk_type    = "pd-standard"
-    disk_size_gb = 50
+    machine_type    = "e2-medium"
+    disk_type       = "pd-standard"
+    disk_size_gb    = 50
     service_account = "foodtrack-ci@form-gke-eleve04-42a1.iam.gserviceaccount.com"
 
     oauth_scopes = [
@@ -65,7 +65,7 @@ resource "google_compute_instance" "bastion" {
   name         = "foodtrack-${var.equipe}-bastion"
   machine_type = "e2-micro"
   zone         = var.zone
-  tags = [var.bastion_tag]
+  tags         = [var.bastion_tag]
 
   boot_disk {
     initialize_params {

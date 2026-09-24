@@ -29,8 +29,8 @@ provider "google" {
 module "reseau" {
   source = "./modules/reseau"
 
-  region      = var.region
-  equipe      = var.equipe
+  region = var.region
+  equipe = var.equipe
 }
 
 # --- Module Stockage ---
@@ -47,9 +47,9 @@ module "stockage" {
 module "compute" {
   source = "./modules/compute"
 
-  region      = var.region
-  zone        = var.zone
-  equipe      = var.equipe
+  region = var.region
+  zone   = var.zone
+  equipe = var.equipe
 }
 
 # --- Module wif-github ---
