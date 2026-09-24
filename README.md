@@ -1,4 +1,5 @@
 # foodtrack-groupe-d
+
 FoodTrack sur GCP, Équipe D (Terraform, GKE, CI/CD), entrepôt Eemshaven
 
 Ce projet contient la configuration Terraform complète pour le déploiement de l'infrastructure de la plateforme FoodTrack sur Google Cloud Platform (GCP).
@@ -7,6 +8,7 @@ L'architecture repose sur une approche modulaire respectant les principes d'isol
 
 🏗 Architecture globale
 L'infrastructure est découpée en quatre modules principaux :
+
 ```text
 .
 ├── main.tf             # Configuration racine (interconnexion des modules)
@@ -23,38 +25,33 @@ L'infrastructure est découpée en quatre modules principaux :
 🏷 Convention de nommage
 Toutes les ressources respectent la convention de nommage imposée :
 
-| Ressource | Convention de nom |
-|---|---|
-| VPC | foodtrack-d-vpc |
-| Sous-réseau | foodtrack-d-subnet |
-| Cluster GKE | foodtrack-d-cluster |
-| Node pool GKE | foodtrack-d-pool |
-| Bastion VM | foodtrack-d-bastion |
-| Bucket State Terraform | foodtrack-d-tfstate-form-gke-eleve04-42a1 |
-| Dépôt d'images | foodtrack-d-images |
-| Namespaces Kubernetes | foodtrack-dev, foodtrack-test, foodtrack-prod |
+| Ressource              | Convention de nom                             |
+| ---------------------- | --------------------------------------------- |
+| VPC                    | foodtrack-d-vpc                               |
+| Sous-réseau           | foodtrack-d-subnet                            |
+| Cluster GKE            | foodtrack-d-cluster                           |
+| Node pool GKE          | foodtrack-d-pool                              |
+| Bastion VM             | foodtrack-d-bastion                           |
+| Bucket State Terraform | foodtrack-d-tfstate-form-gke-eleve04-42a1     |
+| Dépôt d'images       | foodtrack-d-images                            |
+| Namespaces Kubernetes  | foodtrack-dev, foodtrack-test, foodtrack-prod |
 
 🛠 Prérequis
+
 - Google Cloud SDK (gcloud) installé et authentifié.
 - Terraform >= 1.5.0 installe.
 - Projet GCP configuré : form-gke-eleve04-42a1.
 - Le bucket de State Terraform créé au préalable dans GCP.
 
 1. Activer les API GCP requises
-Avant la première initialisation, activez les API nécessaires sur le projet :
-bash `gcloud services enable compute.googleapis.com \ container.googleapis.com \ artifactregistry.googleapis.com \ iamcredentials.googleapis.com`
-
+   Avant la première initialisation, activez les API nécessaires sur le projet :
+   bash `gcloud services enable compute.googleapis.com \ container.googleapis.com \ artifactregistry.googleapis.com \ iamcredentials.googleapis.com`
 2. Configurer la région et la zone CLI
-bash
-`export EQUIPE="d"
-export REGION="europe-west4"
-export ZONE="europe-west4-b"
-export PROJECT="form-gke-eleve04-42a1"
-gcloud config set project "$PROJECT"
-gcloud config set compute/region "$REGION"
-gcloud config set compute/zone "$ZONE"`
+   bash
+   `export EQUIPE="d" export REGION="europe-west4" export ZONE="europe-west4-b" export PROJECT="form-gke-eleve04-42a1" gcloud config set project "$PROJECT" gcloud config set compute/region "$REGION" gcloud config set compute/zone "$ZONE"`
 
 🚀 Guide de déploiement
+
 1. Initialisation de Terraform
 
 Initialisez le backend GCS et téléchargez les fournisseurs :
@@ -123,12 +120,12 @@ FoodTrack est composé de trois éléments :
 
 Le nombre de pods prévu n'est pas le même partout :
 
-| Environnement | API | Portail | Redis | Total |
-|---|---:|---:|---:|---:|
-| Développement | 1 | 1 | 1 | 3 |
-| Test | 1 | 1 | 1 | 3 |
-| Production | 2 | 2 | 1 | 5 |
-| Total | 4 | 4 | 3 | 11 |
+| Environnement  | API | Portail | Redis | Total |
+| -------------- | --: | ------: | ----: | ----: |
+| Développement |   1 |       1 |     1 |     3 |
+| Test           |   1 |       1 |     1 |     3 |
+| Production     |   2 |       2 |     1 |     5 |
+| Total          |   4 |       4 |     3 |    11 |
 
 La production possède deux pods pour l'API et deux pour le portail. Si un pod redémarre, l'autre peut continuer à répondre. Lors de notre dernière vérification, les 11 pods applicatifs étaient dans l'état `Running`.
 
@@ -138,12 +135,12 @@ Le cluster `foodtrack-d-cluster` est déployé dans la zone `europe-west4-b`. So
 
 Au moment de notre vérification, quatre nœuds étaient actifs. Les valeurs affichées par Kubernetes étaient les suivantes :
 
-| Capacité | Par nœud | Total pour 4 nœuds |
-|---|---:|---:|
-| CPU matériel | 2 vCPU | 8 vCPU |
-| CPU utilisable par Kubernetes | 940m | 3760m |
-| Mémoire matérielle | environ 3,83 Gio | environ 15,31 Gio |
-| Mémoire utilisable par Kubernetes | environ 2,73 Gio | environ 10,94 Gio |
+| Capacité                          |        Par nœud | Total pour 4 nœuds |
+| ---------------------------------- | ---------------: | ------------------: |
+| CPU matériel                      |           2 vCPU |              8 vCPU |
+| CPU utilisable par Kubernetes      |             940m |               3760m |
+| Mémoire matérielle               | environ 3,83 Gio |   environ 15,31 Gio |
+| Mémoire utilisable par Kubernetes | environ 2,73 Gio |   environ 10,94 Gio |
 
 Une partie de la puissance de chaque machine est réservée par GKE pour le système et les composants Kubernetes. C'est pour cela que la capacité utilisable est plus faible que la capacité matérielle.
 
@@ -154,21 +151,21 @@ Le nombre de nœuds n'est pas fixe. GKE peut en ajouter lorsqu'il manque de la p
 Les trois environnements utilisent les mêmes ressources pour chaque composant :
 
 | Composant | CPU réservé | Mémoire réservée | Limite CPU | Limite mémoire |
-|---|---:|---:|---:|---:|
-| API | 100m | 128Mi | 300m | 128Mi |
-| Portail | 100m | 128Mi | 300m | 128Mi |
-| Redis | 50m | 128Mi | 500m | 512Mi |
+| --------- | ------------: | ------------------: | ---------: | --------------: |
+| API       |          100m |               128Mi |       300m |           128Mi |
+| Portail   |          100m |               128Mi |       300m |           128Mi |
+| Redis     |           50m |               128Mi |       500m |           512Mi |
 
 Les valeurs réservées servent à Kubernetes pour placer les pods sur les nœuds. Les limites empêchent un conteneur de consommer trop de ressources.
 
 Avec le nombre de réplicas prévu dans chaque environnement, les pods FoodTrack réservent :
 
-| Environnement | CPU réservé | Mémoire réservée |
-|---|---:|---:|
-| Développement | 250m | 384Mi |
-| Test | 250m | 384Mi |
-| Production | 450m | 640Mi |
-| Total | 950m | 1408Mi |
+| Environnement  | CPU réservé | Mémoire réservée |
+| -------------- | ------------: | ------------------: |
+| Développement |          250m |               384Mi |
+| Test           |          250m |               384Mi |
+| Production     |          450m |               640Mi |
+| Total          |          950m |              1408Mi |
 
 Ces chiffres correspondent au fonctionnement normal de l'application, avant une éventuelle montée en charge de l'API par le HPA. Ils ne comprennent pas les composants internes de GKE. Si les trois HPA atteignent leur nombre maximal de pods, les réservations de l'application peuvent monter jusqu'à 1250m de CPU et 1792Mi de mémoire.
 
@@ -176,11 +173,11 @@ Ces chiffres correspondent au fonctionnement normal de l'application, avant une 
 
 Un HorizontalPodAutoscaler surveille le Deployment `api-capteurs`. Les réglages sont adaptés à chaque environnement :
 
-| Environnement | Minimum | Maximum | Seuil CPU |
-|---|---:|---:|---:|
-| Développement | 1 pod | 2 pods | 80 % |
-| Test | 1 pod | 2 pods | 70 % |
-| Production | 2 pods | 3 pods | 60 % |
+| Environnement  | Minimum | Maximum | Seuil CPU |
+| -------------- | ------: | ------: | --------: |
+| Développement |   1 pod |  2 pods |      80 % |
+| Test           |   1 pod |  2 pods |      70 % |
+| Production     |  2 pods |  3 pods |      60 % |
 
 La production conserve donc toujours deux pods API et peut monter jusqu'à trois pods lorsque l'utilisation du CPU augmente. Si les nœuds existants n'ont plus assez de place, l'autoscaler du node pool peut à son tour créer une machine supplémentaire.
 
@@ -188,11 +185,11 @@ La production conserve donc toujours deux pods API et peut monter jusqu'à trois
 
 Les communications internes passent par des Services Kubernetes de type `ClusterIP`.
 
-| Service | Port | Accès |
-|---|---:|---|
-| `api-capteurs` | 8080 | Interne au cluster |
+| Service             | Port | Accès                       |
+| ------------------- | ---: | ---------------------------- |
+| `api-capteurs`    | 8080 | Interne au cluster           |
 | `portail-qualite` | 8080 | Interne, derrière l'Ingress |
-| `cache-releves` | 6379 | Interne, Service headless |
+| `cache-releves`   | 6379 | Interne, Service headless    |
 
 L'API et Redis ne sont pas directement exposés sur Internet. Seul le portail passe par un Ingress GKE.
 
@@ -200,12 +197,12 @@ Au moment de la validation, l'adresse publique de la production était `http://3
 
 Les tests ont donné les résultats suivants :
 
-| Test | Résultat |
-|---|---|
-| Page principale `/` | HTTP 200 |
-| Sonde `/healthz` | HTTP 200 |
-| API appelée depuis le cluster | HTTP 200 |
-| Route publique `/api` | HTTP 301 |
+| Test                           | Résultat |
+| ------------------------------ | --------- |
+| Page principale`/`           | HTTP 200  |
+| Sonde`/healthz`              | HTTP 200  |
+| API appelée depuis le cluster | HTTP 200  |
+| Route publique`/api`         | HTTP 301  |
 
 Le code 301 sur `/api` correspond à la redirection Nginx vers la route terminée par `/`. L'API répond bien avec un code 200 lorsqu'elle est appelée depuis le cluster.
 
@@ -215,12 +212,12 @@ Redis utilise un StatefulSet afin de conserver une identité stable et un volume
 
 Chaque environnement possède un PersistentVolumeClaim de `10Gi`, utilisant la StorageClass `foodtrack-hdd` et le mode d'accès `ReadWriteOnce`.
 
-| Environnement | Volume |
-|---|---:|
-| Développement | 10Gi |
-| Test | 10Gi |
-| Production | 10Gi |
-| Total | 30Gi |
+| Environnement  | Volume |
+| -------------- | -----: |
+| Développement |   10Gi |
+| Test           |   10Gi |
+| Production     |   10Gi |
+| Total          |   30Gi |
 
 Le volume reste présent lorsqu'un pod Redis est supprimé puis recréé. Le Service `cache-releves` utilise aussi `clusterIP: None` afin de fournir une identité réseau stable au StatefulSet.
 
@@ -253,11 +250,11 @@ Cette procédure a été utilisée pendant le premier déploiement après une er
 
 Lors de la validation finale, les images suivantes étaient déployées :
 
-| Composant | Image |
-|---|---|
-| API | `europe-west4-docker.pkg.dev/form-gke-eleve04-42a1/foodtrack-d-images/api-capteurs:485a7c1a21c7bf61d57855bbf09317ec565e45b4` |
-| Portail | `europe-west4-docker.pkg.dev/form-gke-eleve04-42a1/foodtrack-d-images/portail-qualite:485a7c1a21c7bf61d57855bbf09317ec565e45b4` |
-| Cache | `redis:8.10.1` |
+| Composant | Image                                                                                                                             |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| API       | `europe-west4-docker.pkg.dev/form-gke-eleve04-42a1/foodtrack-d-images/api-capteurs:485a7c1a21c7bf61d57855bbf09317ec565e45b4`    |
+| Portail   | `europe-west4-docker.pkg.dev/form-gke-eleve04-42a1/foodtrack-d-images/portail-qualite:485a7c1a21c7bf61d57855bbf09317ec565e45b4` |
+| Cache     | `redis:8.10.1`                                                                                                                  |
 
 Le tag de l'API et du portail correspond au hash du commit Git utilisé pour le déploiement. Nous pouvons ainsi retrouver précisément la version qui tourne dans le cluster.
 
@@ -266,12 +263,12 @@ Le tag de l'API et du portail correspond au hash du commit Git utilisé pour le 
 Un scan Trivy a été lancé sur les 13 fichiers de configuration détectés dans le dossier `k8s`.
 
 | Sévérité | Nombre |
-|---|---:|
-| Critique | 0 |
-| Élevée | 8 |
-| Moyenne | 10 |
-| Faible | 21 |
-| Inconnue | 0 |
+| ----------- | -----: |
+| Critique    |      0 |
+| Élevée    |      8 |
+| Moyenne     |     10 |
+| Faible      |     21 |
+| Inconnue    |      0 |
 
 Les huit résultats élevés correspondent à deux contrôles présents dans plusieurs ressources générées :
 
@@ -310,10 +307,8 @@ Le pipeline s'authentifie auprès de Google Cloud sans utiliser de mot de passe 
 
 1. **Vérification du code (job « qualite »)**
    Avant toute chose, le pipeline vérifie que le code est correct : le code Terraform est bien formaté et syntaxiquement valide, les fichiers de configuration Kubernetes (assemblés via Kustomize à partir du dossier `k8s/`) respectent le format attendu, et une recherche de failles de sécurité connues est effectuée sur le code Terraform. Si une faille grave est détectée, le pipeline s'arrête ici.
-
 2. **Publication des images (job « build »)**
    L'application FoodTrack est composée de trois éléments (un portail web, une API, un cache de données), fournis sous forme d'images déjà prêtes, sans code source à compiler côté équipe. Le pipeline récupère ces images, les analyse à la recherche de failles de sécurité, puis les republie dans le registre d'images de l'équipe sur Google Cloud (Artifact Registry, dépôt `foodtrack-d-images`). Chaque image est identifiée par l'identifiant unique du commit qui l'a publiée, pour toujours savoir exactement quelle version tourne où.
-
 3. **Déploiement (jobs « deploy-dev », « deploy-test », « deploy-prod »)**
    Ces trois étapes assemblent et appliquent la configuration Kubernetes du bon environnement grâce à Kustomize (`k8s/overlays/dev`, `test` ou `prod`, chacun basé sur le socle commun `k8s/base`), mettent à jour les déploiements pour pointer vers les images republiées dans Artifact Registry, puis attendent la confirmation que le déploiement s'est bien terminé et que tous les pods sont prêts, pour éviter qu'une erreur passe inaperçue.
 
@@ -329,10 +324,10 @@ Le pipeline a besoin de six informations, stockées comme variables du dépôt (
 
 Trois événements différents déclenchent chacun un environnement, de façon indépendante :
 
-| Événement | Environnement déclenché |
-|---|---|
-| Envoi de code sur la branche `develop` | Développement (`foodtrack-dev`) |
-| Fusion de code sur la branche `main` | Test (`foodtrack-test`) |
+| Événement                                                  | Environnement déclenché                                   |
+| ------------------------------------------------------------ | ----------------------------------------------------------- |
+| Envoi de code sur la branche`develop`                      | Développement (`foodtrack-dev`)                          |
+| Fusion de code sur la branche`main`                        | Test (`foodtrack-test`)                                   |
 | Création d'un tag de version (`v1.0.0`, `v1.1.0`, etc.) | Production (`foodtrack-prod`), après validation manuelle |
 
 Le code circule librement sur `develop` pendant le développement. Une fois prêt à être testé plus sérieusement, il est fusionné sur `main`, ce qui déclenche automatiquement le déploiement sur l'environnement de test. La mise en production n'est jamais automatique : elle nécessite la création explicite d'un tag suivant le versionnage sémantique (`vMAJEUR.MINEUR.CORRECTIF`), puis l'approbation manuelle d'un membre de l'équipe sur l'environnement GitHub protégé.
@@ -348,9 +343,12 @@ Un correctif urgent suit le même chemin que toute autre modification : dévelop
 ## Partie Exploitation
 
 ### Monitoring
-Le monitoring permet de surveiller l'état et les performances de l'application FoodTrack en production
 
-Le dashboard devra afficher les principales métriques suivantes :
+Le monitoring permet de surveiller l'état et les performances de l'application
+FoodTrack en production.
+
+Un dashboard a été configuré dans Google Cloud Monitoring pour suivre les
+principales métriques de l'environnement `foodtrack-prod` :
 
 - CPU
 - Mémoire
@@ -358,54 +356,177 @@ Le dashboard devra afficher les principales métriques suivantes :
 - Taux d'erreurs HTTP
 - Latence
 
-Un uptime check sera également configuré sur l'adresse publique du portail de production afin de vérifier sa disponibilité
-Une requête de logs sera enregistrée dans Cloud logging afin d'isoler rapidement les erreurs de l'application dans le namespace concerné
+Le taux d'erreurs HTTP est calculé en comparant le nombre de réponses HTTP 4xx
+au nombre total de requêtes reçues par le load balancer.
+
+Ce suivi permet de détecter une dégradation du portail même lorsque celui-ci
+reste accessible.
+
+Un uptime check a également été configuré sur l'adresse publique du portail
+de production :
+
+`http://34.54.176.240`
+
+Le chemin contrôlé est :
+
+`/healthz`
+
+Une requête de logs a été enregistrée dans Cloud Logging afin d'isoler
+rapidement les erreurs de l'application dans le namespace `foodtrack-prod`.
 
 ### Alertes
-Les alertes permettent de prévenir rapidement l'équipe en cas de problème détecté sur le portail FoodTrack
 
-Une alerte sera configurée à partir de l'uptime check du portail de production
-Une notification par e-mail sera envoyée si le portail ne répond plus pendant une durée définie
-Le seuil et la durée de déclenchement seront choisis afin d'éviter les alertes inutiles tout en permettant de réagir rapidement en cas de problèmes
+Une alerte a été configurée à partir de l'uptime check du portail de production.
 
-### IAM et securite
-L'IAM permet de contrôler qui peut accéder aux ressources du projet et quelles actions chaque utilisateur ou service peut effectuer
-Le principe du moindre privilège sera appliqué afin d'attribuer uniquement les permissions nécessaire
+Une notification par e-mail est envoyée si le portail ne répond plus pendant
+une durée de 2 minutes.
 
-La sécurité du projet reposera également sur plusieurs contrôles :
+Cette durée a été choisie comme compromis entre réactivité et limitation
+des fausses alertes provoquées par une interruption très courte.
 
-- Vérification des comptes de service et de leurs rôles
-- Vérification des règles de pare-feu
-- Sécurisation de l'accès au bastion
-- Contrôle de l'accès au plan de contrôle GKE
-- Vérification de l'absence de secrets dans le dépôt Git
-- Contrôle de l'origine, du versionnement et du scan des images Docker
+### IAM et sécurité
 
-### Script Python de controle de santé
-Un script Python permet de vérifier automatiquement l'état du service FoodTrack
+L'IAM permet de contrôler qui peut accéder aux ressources du projet et quelles
+actions chaque utilisateur ou service peut effectuer.
 
-Le script interroge une URL, vérifie le code HTTP retourné, mesure le temps de réponse et affiche un résultat
-Il retourne un code de sortie '0' si le service fonctionne correctement et un code différent de '0' en cas d'erreur.
-L'URL est fournie au lancement du script afin de pouvoir utiliser le même script sur plusieurs environnements sans modifier le code.
+L'authentification du pipeline GitHub Actions utilise Workload Identity
+Federation, ce qui évite de stocker une clé JSON permanente dans le dépôt
+ou dans GitHub.
+
+Le compte de service :
+
+`foodtrack-ci@form-gke-eleve04-42a1.iam.gserviceaccount.com`
+
+possède notamment les rôles :
+
+- `roles/artifactregistry.writer`
+- `roles/container.developer`
+
+La configuration du node pool a également montré que ce même compte de service
+est utilisé par les nœuds GKE.
+
+Cette mutualisation fonctionne, mais une amélioration serait de séparer
+le compte utilisé par la CI/CD de celui utilisé par les nœuds afin de mieux
+respecter le principe du moindre privilège.
+
+Les autres contrôles réalisés portent sur :
+
+- les comptes de service et leurs rôles
+- les règles de pare-feu
+- l'accès SSH au bastion
+- l'accès au plan de contrôle GKE
+- l'absence de secrets dans le dépôt Git
+- l'origine, le versionnement et le scan des images Docker
+
+### Script Python de contrôle de santé
+
+Un script Python permet de vérifier automatiquement l'état du service FoodTrack.
+
+Le script interroge l'API, vérifie le code HTTP retourné, mesure le temps
+de réponse et affiche un résultat lisible.
+
+Il retourne un code de sortie `0` si le service fonctionne correctement
+et un code différent de `0` en cas d'erreur.
+
+L'URL est fournie au lancement du script afin de pouvoir utiliser le même script
+sur plusieurs environnements sans modifier le code.
+
+Un test réalisé sur l'API de production a retourné un code HTTP 200
+avec une latence d'environ 0,066 seconde.
 
 ### Scripts Bash
+
 Trois scripts Bash permettent d'automatiser des tâches d'exploitation courantes :
-- Le premier script sauvegarde les fichiers de configuration dans un bucket Cloud Storage avec un nom horodaté
-- Le deuxième script supprime les exports de logs âgés de plus de 30 jours afin d'éviter l'accumulation de fichiers inutiles
-- Le troisième script permet de réduire le node pool GKE à zéro pendant les périodes d'inactivité puis de le redémarrer lorsque l'environnement doit être utilisé
 
-Ces scripts sont conçus pour être rejouables et pour arrêter leur exécution automatiquement en cas d'erreur
+- `backup-config.sh` crée une archive horodatée des fichiers de configuration
+  et l'envoie dans le bucket Cloud Storage `foodtrack-d-backup-dev`
+- `purge-old-logs.sh` supprime les exports de logs âgés de plus de 30 jours
+  afin d'éviter l'accumulation de fichiers inutiles
+- `cluster-schedule.sh` permet de réduire le node pool GKE à zéro pendant
+  les périodes d'inactivité puis de le redémarrer lorsque l'environnement
+  doit être utilisé
 
-### Couts
-Cette partie permet de voir quelles ressources du projet coûtent de l'argent
-Nous allons surtout surveiller le coût du cluster GKE, du stockage, du réseau et des logs
-Pour réduire les dépenses, le node pool pourra être arrêté quand l'environnement n'est pas utilisé
-Les coûts seront vérifiés avec le calculateur Google Cloud et les données de facturation du projet
+Le script d'arrêt désactive l'autoscaling avant de réduire le node pool à zéro.
+
+Lors du redémarrage, il remet un nœud puis réactive l'autoscaling entre
+1 et 5 nœuds.
+
+Ces scripts utilisent `set -euo pipefail` afin d'arrêter leur exécution
+lorsqu'une erreur est détectée.
+
+### Coûts
+
+Une analyse des coûts a été réalisée à partir de la configuration réelle
+du node pool et du Google Cloud Pricing Calculator.
+
+Les principaux paramètres utilisés sont :
+
+- 4 nœuds
+- type de machine `e2-medium`
+- région `europe-west4`
+- disques `pd-standard`
+- 50 GiB par nœud
+- provisionnement standard
+
+Deux scénarios ont été comparés.
+
+Pour un fonctionnement continu d'environ 730 heures par mois,
+le coût estimé est de :
+
+`116,51 $ par mois`
+
+Pour une utilisation limitée à environ 365 heures par mois,
+soit environ 12 heures par jour, le coût estimé est de :
+
+`58,25 $ par mois`
+
+L'économie estimée est donc de :
+
+`58,26 $ par mois`
+
+soit environ 50 % sur les ressources de calcul simulées.
+
+Cette estimation ne représente pas l'ensemble de la facture Google Cloud,
+car certaines ressources comme les volumes persistants, les équilibreurs
+de charge, Cloud Storage ou le trafic réseau peuvent continuer à générer
+des coûts lorsque le node pool est arrêté.
 
 ### Audit
-L'audit permet de vérifier que les règles de sécurité du projet sont bien respectées
-Nous allons contrôler les accès IAM, les règles de pare feu, le bastion, les secrets et les images utilisées.
-L'objectif est de repérer les éventuels problèmes, de les corriger et de justifier les choix de sécurité qui ont été fait
+
+Un audit de sécurité a été réalisé afin de vérifier la conformité
+de l'infrastructure avec les exigences du projet.
+
+Les contrôles ont porté sur :
+
+- les accès IAM
+- les comptes de service
+- les règles de pare-feu
+- le bastion
+- le plan de contrôle GKE
+- les secrets
+- les images Docker
+- les résultats des scans Trivy
+
+Les scans Terraform ont permis de corriger plusieurs problèmes de sécurité,
+notamment les anciens endpoints de métadonnées et la configuration
+des métadonnées des nœuds.
+
+Le plan de contrôle GKE reste accessible depuis `0.0.0.0/0`.
+
+Cette exception est documentée car les runners GitHub Actions utilisent
+des adresses IP dynamiques. La sécurité de l'accès repose donc principalement
+sur IAM et Workload Identity Federation.
+
+Les scans Kubernetes ont également identifié des améliorations possibles
+sur les contextes de sécurité des conteneurs.
+
+L'audit complet est documenté dans :
+
+`docs/audit.md`
+
+La configuration de sécurité détaillée est disponible dans :
+
+`docs/securite.md`
 
 ## Retour d'expérience : premier déploiement réel
 
@@ -436,6 +557,7 @@ L'ensemble de l'infrastructure de ce projet est géré par Terraform, à une seu
 Cette exception est nécessaire pour une raison structurelle : Terraform a besoin que ce bucket existe déjà pour pouvoir s'y connecter et y stocker son état (configuration du bloc `backend "gcs"` dans `terraform/main.tf`). Il ne peut donc pas créer lui-même la ressource qui lui sert de mémoire, ce serait un problème de dépendance circulaire (« l'œuf et la poule »).
 
 Commandes utilisées pour cette unique création manuelle :
+
 ```bash
 gcloud storage buckets create gs://foodtrack-d-tfstate-form-gke-eleve04-42a1 \
   --location=europe-west4 --uniform-bucket-level-access
