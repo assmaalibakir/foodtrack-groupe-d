@@ -22,13 +22,11 @@ resource "google_container_cluster" "primary" {
     master_ipv4_cidr_block  = "172.16.0.0/28"
   }
 
+  # trivy:ignore:GCP-0053
   master_authorized_networks_config {
-    # trivy:ignore:GCP-0053 -- Acces ouvert necessaire pour que le pipeline CI/CD
-    # (GitHub Actions, IP dynamique a chaque execution) puisse atteindre l API.
-    # La securite repose sur IAM/WIF plutot que sur le filtrage reseau.
     cidr_blocks {
       cidr_block   = "0.0.0.0/0"
-      display_name = "Authorized-Access"
+      display_name = "Public Access"
     }
   }
 }
