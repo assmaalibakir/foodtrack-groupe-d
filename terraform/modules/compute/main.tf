@@ -29,6 +29,10 @@ resource "google_container_cluster" "primary" {
       display_name = "Public Access"
     }
   }
+  
+  workload_identity_config {
+    workload_pool = "${var.project}.svc.id.goog"
+  }
 }
 
 # Node Pool personnalisé (pd-standard + e2-medium)
@@ -60,6 +64,10 @@ resource "google_container_node_pool" "primary_nodes" {
     workload_metadata_config {
       mode = "GKE_METADATA"
     }
+  }
+  
+  lifecycle {
+    ignore_changes = [node_count]
   }
 }
 
