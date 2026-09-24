@@ -16,5 +16,6 @@ configMapGenerator:
   - name: foodtrack-config
     files:
       - default.conf=nginx.conf
+      - logo.png
 generatorOptions:
   disableNameSuffixHash: true

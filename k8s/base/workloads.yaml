@@ -43,6 +43,10 @@ spec:
               mountPath: /usr/share/nginx/html/index.html
               subPath: index.html
               readOnly: true
+            - name: conf
+              mountPath: /usr/share/nginx/html/logo.png
+              subPath: logo.png
+              readOnly: true
       volumes:
         - name: conf
           configMap:
