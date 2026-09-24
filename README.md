@@ -238,9 +238,9 @@ Cette exception est nécessaire pour une raison structurelle : Terraform a besoi
 
 Commandes utilisées pour cette unique création manuelle :
 ```bash
-gcloud storage buckets create gs://foodtrack-d-tfstate-foodtrack-equipe-d \
+gcloud storage buckets create gs://foodtrack-d-tfstate-form-gke-eleve04-42a1 \
   --location=europe-west4 --uniform-bucket-level-access
-gcloud storage buckets update gs://foodtrack-d-tfstate-foodtrack-equipe-d --versioning
+gcloud storage buckets update gs://foodtrack-d-tfstate-form-gke-eleve04-42a1 --versioning
 ```
 
 Le versionnage est activé sur ce bucket pour permettre de revenir à une version antérieure du state en cas de corruption ou de mauvaise manipulation. Aucune autre ressource du projet n'est créée en dehors de Terraform.
