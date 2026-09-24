@@ -1,0 +1,56 @@
+name: Gestion horaire du cluster
+
+# Deux declenchements automatiques quotidiens :
+# - extinction le soir, pour ne pas payer les noeuds pendant la nuit
+# - redemarrage le matin, pour retrouver un cluster pret des le debut de journee
+# Les horaires sont en UTC. Ajuster selon le fuseau horaire souhaite (UTC+2 en ete en France).
+on:
+  schedule:
+    - cron: "0 20 * * *"   # 20h UTC = 22h heure d ete francaise -> extinction
+    - cron: "0 6 * * *"    # 6h UTC = 8h heure d ete francaise -> redemarrage
+  workflow_dispatch:
+    # Permet aussi de declencher manuellement depuis l onglet Actions, pratique
+    # pour tester ou pour une extinction/redemarrage ponctuel hors horaire.
+    inputs:
+      action:
+        description: "stop ou start"
+        required: true
+        type: choice
+        options:
+          - stop
+          - start
+
+# Obligatoire pour que GitHub emette un jeton OIDC, sinon l authentification
+# WIF echoue avec "did not inject ACTIONS_ID_TOKEN_REQUEST_TOKEN".
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  gerer-cluster:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.CI_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Determiner l action a executer
+        id: determiner
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "action=${{ inputs.action }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "0 20 * * *" ]; then
+            echo "action=stop" >> "$GITHUB_OUTPUT"
+          else
+            echo "action=start" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Executer le script de gestion du cluster
+        run: bash scripts/cluster-schedule.sh ${{ steps.determiner.outputs.action }}
