@@ -8,6 +8,7 @@ L'architecture repose sur une approche modulaire respectant les principes d'isol
 
 🏗 Architecture globale
 L'infrastructure est découpée en quatre modules principaux :
+.
 ├── main.tf             # Configuration racine (interconnexion des modules)
 ├── variables.tf        # Variables globales du projet
 ├── outputs.tf          # Sorties globales de l'infrastructure
