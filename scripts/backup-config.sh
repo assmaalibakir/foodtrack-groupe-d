@@ -24,13 +24,22 @@ rm -rf "${BACKUP_DIR}"
 # Cree le dossier temporaire
 mkdir -p "${BACKUP_DIR}"
 
-# A copier ici les fichiers de configuration a sauvegarder
-# Cette partie sera completee quand le depot final sera pret
-# Exemple :
-# cp -r ../manifests "${BACKUP_DIR}/"
-# cp -r ../terraform "${BACKUP_DIR}/"
+# Sauvegarde les fichiers Kubernetes
+if [ -d "k8s" ]; then
+    cp -r k8s "${BACKUP_DIR}/"
+fi
 
-# Cree une archive compressee avec le contenu du dossier temporaire
+# Sauvegarde les fichiers Terraform
+if [ -d "terraform" ]; then
+    cp -r terraform "${BACKUP_DIR}/"
+fi
+
+# Sauvegarde les fichiers de documentation
+if [ -d "docs" ]; then
+    cp -r docs "${BACKUP_DIR}/"
+fi
+
+# Cree une archive compressee avec les fichiers sauvegardes
 tar -czf "/tmp/${ARCHIVE_NAME}" -C "${BACKUP_DIR}" .
 
 # Envoie l'archive dans le bucket Google Cloud Storage
