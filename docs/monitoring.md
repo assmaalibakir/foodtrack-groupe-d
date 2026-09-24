@@ -1,75 +1,81 @@
+
 # Monitoring FoodTrack
 
 ## Objectif
 
-L'objectif du monitoring est de surveiller l'etat de l'application FoodTrack
+L'objectif du monitoring est de surveiller l'état de l'application FoodTrack
 et de son environnement de production.
 
-La supervision doit permettre de detecter rapidement un probleme de performance,
-une indisponibilite ou un dysfonctionnement de l'application.
+La supervision doit permettre de détecter rapidement un problème de performance,
+une indisponibilité ou un dysfonctionnement de l'application.
 
-## Metriques a surveiller
+## Métriques surveillées
 
-Le dashboard de supervision devra afficher au minimum les metriques suivantes
-pour l'environnement de production :
+Le dashboard de supervision permet de suivre les principales métriques
+de l'environnement `foodtrack-prod` :
 
 - Utilisation CPU.
-- Utilisation memoire.
-- Nombre de pods prets.
-- Taux d'erreurs HTTP.
-- Latence des requetes HTTP.
-
-Ces metriques permettront de verifier a la fois l'etat de l'infrastructure
-et le bon fonctionnement de l'application.
+- Utilisation mémoire.
+- Nombre de pods prêts.
+- Erreurs HTTP.
+- Latence des requêtes HTTP.
 
 ## Dashboard
 
-Un dashboard de supervision sera cree dans Google Cloud Monitoring afin de
-centraliser les principales metriques de l'environnement de production.
+Un dashboard de supervision a été créé dans Google Cloud Monitoring.
 
-Il devra permettre de visualiser rapidement :
+Il permet de visualiser :
 
 - L'utilisation CPU.
-- L'utilisation memoire.
-- Le nombre de pods prets.
-- Le taux d'erreurs HTTP.
-- La latence des requetes HTTP.
+- L'utilisation mémoire.
+- Le nombre de pods prêts.
+- Les erreurs HTTP.
+- La latence des requêtes HTTP.
 
-Le dashboard sera complete lorsque l'application FoodTrack sera deployee
-et que les metriques seront disponibles dans Google Cloud Monitoring.
+Les métriques CPU et mémoire sont filtrées sur le namespace `foodtrack-prod`.
 
-### Etat actuel
+Le graphique des pods prêts permet de vérifier que les composants de production
+sont disponibles.
 
-A configurer lorsque l'environnement foodtrack-prod sera disponible.
+La valeur observée est de 5 lorsque tous les composants sont disponibles :
+2 pods API, 2 pods portail et 1 pod cache.
+
+Le graphique des erreurs HTTP permet de surveiller les erreurs rencontrées
+par le portail.
+
+Le graphique de latence permet de surveiller le temps de réponse
+des requêtes HTTP.
 
 ## Uptime check
 
-Un controle de disponibilite sera configure sur l'adresse publique
-du portail de production FoodTrack.
+Un test de disponibilité a été configuré sur l'adresse publique
+du portail de production :
 
-Ce controle permettra de verifier regulierement que le portail
-repond correctement et reste accessible.
+`http://34.54.176.240`
 
-L'uptime check servira egalement de base pour declencher une alerte
-si le portail ne repond plus.
+Le test utilise l'endpoint `/healthz`.
 
-### Etat actuel
-
-A configurer lorsque l'adresse publique de foodtrack-prod sera disponible.
+Il permet de vérifier régulièrement que le portail répond correctement.
 
 ## Logs
 
-Une requete de logs sera preparee afin d'isoler les erreurs
-de l'application dans le namespace concerne.
+Une requête de logs a été créée pour retrouver les erreurs
+du namespace `foodtrack-prod`.
 
-Cette requete permettra de retrouver plus rapidement les messages
-d'erreur lorsqu'un probleme apparait dans l'application.
+La requête utilisée est :
 
-La requete sera enregistree dans Google Cloud Logging
-afin de pouvoir etre reutilisee facilement.
+```text
+resource.type="k8s_container"
+resource.labels.namespace_name="foodtrack-prod"
+severity>=ERROR
+```
 
-### Etat actuel
+Cette requête a été enregistrée dans Google Cloud Logging.
 
-A configurer lorsque les logs de l'application FoodTrack seront disponibles.
+Elle permet de retrouver rapidement les erreurs en cas de problème.
 
-## Etat actuel
+## État actuel
+
+Le monitoring de l'environnement `foodtrack-prod` est configuré.
+
+Le dashboard, l'uptime check et la requête de logs sont opérationnels.

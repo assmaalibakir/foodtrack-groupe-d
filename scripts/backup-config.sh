@@ -7,8 +7,7 @@
 set -euo pipefail
 
 # Nom du bucket de sauvegarde
-# Il faudra remplacer cette valeur quand le vrai bucket sera cree
-BUCKET_NAME="A_REMPLACER"
+BUCKET_NAME="foodtrack-d-backup-dev"
 
 # Dossier temporaire utilise pour preparer la sauvegarde
 BACKUP_DIR="/tmp/foodtrack-backup"

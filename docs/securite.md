@@ -1,141 +1,164 @@
-# Securite FoodTrack
+
+# Sécurité FoodTrack
 
 ## Comptes de service
 
 ### Objectif
 
-Verifier que chaque usage dispose d'un compte de service adapte et que les permissions accordees respectent le principe du moindre privilege
+Vérifier que chaque usage dispose d'un compte de service adapté et que les permissions accordées respectent le principe du moindre privilège.
 
-### Points a verifier
+### Points à vérifier
 
-- Identifier les comptes de service utilises par le projet.
-- Identifier le role de chaque compte de service.
-- Verifier que chaque compte possede uniquement les permissions necessaires
-- Verifier qu'aucun compte de service ne possede un role trop permissif comme `roles/editor`.
-- Justifier les permissions accordees a chaque compte
+- Identifier les comptes de service utilisés par le projet.
+- Identifier le rôle de chaque compte de service.
+- Vérifier que chaque compte possède uniquement les permissions nécessaires.
+- Vérifier qu'aucun compte de service ne possède un rôle trop permissif comme `roles/editor`.
+- Justifier les permissions accordées à chaque compte.
 
-### Etat actuel
+### État actuel
 
-A verifier lorsque l'infrastructure Terraform de l'equipe D sera deployee
+Deux comptes de service principaux ont été identifiés :
 
-## Roles IAM
+- `foodtrack-ci`, utilisé pour la CI/CD avec des rôles liés à Kubernetes Engine et Artifact Registry.
+- Le compte Compute Engine par défaut, qui possède encore le rôle `Editor`.
+
+Le compte `foodtrack-ci` semble également être utilisé par les nœuds GKE. Il serait préférable de séparer l'usage CI/CD de l'usage des nœuds avec un compte de service dédié.
+
+Le rôle `Editor` du compte Compute Engine par défaut doit être vérifié et retiré s'il n'est pas nécessaire.
+
+## Rôles IAM
 
 ### Objectif
 
-Verifier que les roles IAM attribues aux utilisateurs et aux comptes de service
-sont adaptes a leur usage et respectent le principe du moindre privilege.
+Vérifier que les rôles IAM attribués aux utilisateurs et aux comptes de service sont adaptés à leur usage et respectent le principe du moindre privilège.
 
-### Points a verifier
+### Points à vérifier
 
-- Identifier les utilisateurs ayant acces au projet.
-- Identifier les roles attribues a chaque utilisateur.
-- Identifier les roles attribues aux comptes de service.
-- Verifier qu'aucun role trop permissif n'est attribue sans justification.
-- Verifier que chaque role correspond a un besoin reel.
-- Justifier pourquoi chaque role a ete choisi.
+- Identifier les utilisateurs ayant accès au projet.
+- Identifier les rôles attribués à chaque utilisateur.
+- Identifier les rôles attribués aux comptes de service.
+- Vérifier qu'aucun rôle trop permissif n'est attribué sans justification.
+- Vérifier que chaque rôle correspond à un besoin réel.
+- Justifier pourquoi chaque rôle a été choisi.
 
-### Etat actuel
+### État actuel
 
-A verifier lorsque le projet Google Cloud de l'equipe D sera accessible
-et que les ressources auront ete creees.
+
+
+Les droits IAM des quatre membres de l'équipe ont été vérifié
+
+
+
+Plusieurs rôles permettent d'administrer le projet, notamment "Éditeur", "Administrateur de projet IAM" et "Administrateur de compte de service".
+
+
+
+Ces rôles donnent des droits importants et doivent être justifiés selon les besoins de chaque membre.
 
 ## Pare-feu
+
 ### Objectif
 
-Verifier que les regles de pare-feu autorisent uniquement les flux necessaires
-au fonctionnement de l'infrastructure.
+Vérifier que les règles de pare-feu autorisent uniquement les flux nécessaires au fonctionnement de l'infrastructure.
 
-### Points a verifier
+### Points à vérifier
 
-- Identifier toutes les regles de pare-feu du projet.
-- Verifier les ports ouverts.
-- Verifier les adresses IP ou plages reseau autorisees.
-- Verifier que les regles ciblent uniquement les ressources necessaires.
-- Verifier qu'aucun acces SSH n'est ouvert a tout Internet.
-- Justifier chaque regle de pare-feu presente.
+- Identifier toutes les règles de pare-feu du projet.
+- Vérifier les ports ouverts.
+- Vérifier les adresses IP ou plages réseau autorisées.
+- Vérifier que les règles ciblent uniquement les ressources nécessaires.
+- Vérifier qu'aucun accès SSH n'est ouvert à tout Internet.
+- Justifier chaque règle de pare-feu présente.
 
-### Etat actuel
+### État actuel
 
-A verifier lorsque le VPC et les regles de pare-feu de l'equipe D
-auront ete crees par Terraform.
+La règle SSH du bastion autorise uniquement le port `22`.
+
+La source autorisée est `35.235.240.0/20` et la règle cible uniquement les ressources portant le tag `bastion-node`.
+
+L'accès SSH n'est pas ouvert à `0.0.0.0/0`.
 
 ## Bastion
 
 ### Objectif
 
-Verifier que l'acces au bastion est suffisamment securise
-et qu'il ne permet pas de connexions trop ouvertes.
+Vérifier que l'accès au bastion est suffisamment sécurisé et qu'il ne permet pas de connexions trop ouvertes.
 
-### Points a verifier
+### Points à vérifier
 
-- Verifier que l'authentification par mot de passe est desactivee.
-- Verifier que l'authentification se fait uniquement avec des cles SSH.
-- Verifier que l'acces SSH est limite a des adresses IP autorisees.
-- Verifier que le port SSH n'est pas ouvert a tout Internet.
-- Justifier la presence et l'utilisation du bastion.
+- Vérifier que l'authentification par mot de passe est désactivée.
+- Vérifier que l'authentification se fait uniquement avec des clés SSH.
+- Vérifier que l'accès SSH est limité à des adresses IP autorisées.
+- Vérifier que le port SSH n'est pas ouvert à tout Internet.
+- Justifier la présence et l'utilisation du bastion.
 
-### Etat actuel
+### État actuel
 
-A verifier lorsque le bastion de l'equipe D aura ete deploye.
+Le bastion utilisé est `foodtrack-d-bastion`.
 
-## Plan de controle GKE
+L'accès SSH est limité au port `22` et à une plage d'adresses précise.
+
+L'authentification par mot de passe a été désactivée afin de conserver un accès par clé SSH.
+
+## Plan de contrôle GKE
 
 ### Objectif
 
-Verifier comment le plan de controle du cluster GKE est expose
-et identifier les risques associes a ce choix.
+Vérifier comment le plan de contrôle du cluster GKE est exposé et identifier les risques associés à ce choix.
 
-### Points a verifier
+### Points à vérifier
 
-- Identifier si le plan de controle est accessible publiquement ou de maniere restreinte.
-- Identifier les adresses ou reseaux autorises a communiquer avec le cluster.
-- Verifier que l'exposition choisie correspond aux besoins du projet.
-- Identifier les risques lies a ce choix.
-- Indiquer quelle alternative aurait pu etre utilisee.
+- Identifier si le plan de contrôle est accessible publiquement ou de manière restreinte.
+- Identifier les adresses ou réseaux autorisés à communiquer avec le cluster.
+- Vérifier que l'exposition choisie correspond aux besoins du projet.
+- Identifier les risques liés à ce choix.
+- Indiquer quelle alternative aurait pu être utilisée.
 - Justifier la solution retenue.
 
-### Etat actuel
+### État actuel
 
-A verifier lorsque le cluster GKE de l'equipe D aura ete deploye.
+Le plan de contrôle du cluster GKE est actuellement accessible publiquement.
+
+Une restriction aux adresses IP autorisées du bastion est prévue afin de réduire son exposition.
 
 ## Secrets
 
 ### Objectif
 
-Verifier qu'aucune information sensible n'est stockee directement
-dans le depot Git ou dans les fichiers de configuration versionnes.
+Vérifier qu'aucune information sensible n'est stockée directement dans le dépôt Git ou dans les fichiers de configuration versionnés.
 
-### Points a verifier
+### Points à vérifier
 
-- Verifier qu'aucun mot de passe n'est present dans le depot.
-- Verifier qu'aucune cle ou information sensible n'est presente dans le code.
-- Verifier qu'aucun fichier sensible comme `.env` ou certains fichiers JSON
-  n'a ete ajoute par erreur.
-- Verifier l'historique Git pour detecter d'anciens secrets.
-- Verifier que les valeurs sensibles sont gerees avec une solution adaptee.
-- Justifier la methode choisie pour proteger les secrets.
+- Vérifier qu'aucun mot de passe n'est présent dans le dépôt.
+- Vérifier qu'aucune clé ou information sensible n'est présente dans le code.
+- Vérifier qu'aucun fichier sensible comme `.env` ou certains fichiers JSON n'a été ajouté par erreur.
+- Vérifier l'historique Git pour détecter d'anciens secrets.
+- Vérifier que les valeurs sensibles sont gérées avec une solution adaptée.
+- Justifier la méthode choisie pour protéger les secrets.
 
-### Etat actuel
+### État actuel
 
-A verifier lorsque le depot final de l'equipe D sera complet
+Les secrets Kubernetes sont générés automatiquement par un script PowerShell.
+
+Les valeurs sensibles sont générées au moment de l'exécution et ne sont ni affichées ni enregistrées dans un fichier.
+
+Aucune valeur sensible n'est stockée directement dans le dépôt par ce script.
 
 ## Images Docker
 
 ### Objectif
 
-Verifier que les images Docker utilisees dans le projet
-proviennent de sources identifiees et qu'elles sont correctement versionnees.
+Vérifier que les images Docker utilisées dans le projet proviennent de sources identifiées et qu'elles sont correctement versionnées.
 
-### Points a verifier
+### Points à vérifier
 
-- Identifier l'origine de chaque image Docker utilisee.
-- Verifier que les images utilisent des tags explicites.
-- Eviter les tags trop vagues comme `latest`.
-- Verifier que les versions utilisees sont connues.
-- Verifier le dernier resultat d'analyse de securite des images.
-- Justifier le choix des images utilisees.
+- Identifier l'origine de chaque image Docker utilisée.
+- Vérifier que les images utilisent des tags explicites.
+- Éviter les tags trop vagues comme `latest`.
+- Vérifier que les versions utilisées sont connues.
+- Vérifier le dernier résultat d'analyse de sécurité des images.
+- Justifier le choix des images utilisées.
 
-### Etat actuel
+### État actuel
 
-A verifier lorsque les images finales du projet seront definies
-et que l'Artifact Registry sera disponible.
+À vérifier avec la configuration Kubernetes lorsque les images finales seront connues.
