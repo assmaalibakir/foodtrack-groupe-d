@@ -1,7 +1,12 @@
 # --- Outputs Réseau ---
-output "vpc_name" {
+output "vpc_id" {
   description = "Nom du réseau VPC principal"
-  value       = module.reseau.network_name
+  value       = module.reseau.vpc_id
+}
+
+output "subnet_id" {
+  description = "ID du sous-réseau principal"
+  value       = module.reseau.subnet_id
 }
 
 # --- Outputs Compute / GKE ---
@@ -13,7 +18,7 @@ output "gke_cluster_name" {
 output "gke_cluster_endpoint" {
   description = "IP publique/interne de l'API Server GKE"
   value       = module.compute.kubernetes_cluster_endpoint
-  sensitive   = true # Masque l'IP dans les logs de sortie si souhaité
+  sensitive   = true 
 }
 
 output "bastion_ip" {

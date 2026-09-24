@@ -1,9 +1,9 @@
-output "network_name" {
+output "vpc_id" {
   description = "Nom du réseau VPC"
   value       = google_compute_network.vpc.id
 }
 
-output "subnet_name" {
+output "subnet_id" {
   description = "Nom du sous-réseau"
   value       = google_compute_subnetwork.subnet.id
 }

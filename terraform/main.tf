@@ -10,7 +10,6 @@ terraform {
 
   # Configuration du backend distant GCS (Bucket créé au préalable via gcloud)
   backend "gcs" {
-    # Le nom du bucket est passé lors du 'terraform init -backend-config=...' ou renseigné ici
     bucket = "foodtrack-d-tfstate-form-gke-eleve04-42a1"
     prefix = "terraform/state"
   }
@@ -45,11 +44,16 @@ module "stockage" {
 
 # --- Module Compute (GKE & Bastion) ---
 module "compute" {
-  source = "./modules/compute"
+source = "./modules/compute"
 
-  region      = var.region
-  zone        = var.zone
-  equipe      = var.equipe
+  region           = var.region
+  zone             = var.zone
+  equipe           = var.equipe
+  vpc_id           = module.reseau.vpc_id
+  subnet_id        = module.reseau.subnet_id
+  pods_ip_name     = module.reseau.pods_ip_name
+  services_ip_name = module.reseau.services_ip_name
+  bastion_tag      = module.reseau.bastion_tag
 }
 
 # --- Module wif-github ---

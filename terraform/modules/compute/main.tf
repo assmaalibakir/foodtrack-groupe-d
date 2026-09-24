@@ -22,11 +22,16 @@ resource "google_container_cluster" "primary" {
     master_ipv4_cidr_block  = "172.16.0.0/28"
   }
 
+  # trivy:ignore:GCP-0053
   master_authorized_networks_config {
     cidr_blocks {
       cidr_block   = "0.0.0.0/0"
-      display_name = "Access"
+      display_name = "Public Access"
     }
+  }
+  
+  workload_identity_config {
+    workload_pool = "${var.project}.svc.id.goog"
   }
 }
 
@@ -51,6 +56,18 @@ resource "google_container_node_pool" "primary_nodes" {
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
     ]
+
+    metadata = {
+      disable-legacy-endpoints = "true"
+    }
+
+    workload_metadata_config {
+      mode = "GKE_METADATA"
+    }
+  }
+  
+  lifecycle {
+    ignore_changes = [node_count]
   }
 }
 

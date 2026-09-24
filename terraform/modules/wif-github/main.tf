@@ -113,6 +113,7 @@ resource "google_project_iam_member" "ci_roles" {
     [
       "roles/artifactregistry.writer",
       "roles/container.developer",
+      "roles/container.clusterAdmin",
     ],
     var.roles_supplementaires
   ))
