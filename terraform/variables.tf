@@ -15,8 +15,8 @@ variable "zone" {
 }
 
 variable "environment" {
-  type        = string
-  description = "Environnement (dev, test, prod)"
+  type    = string
+  default = "dev" # Évite que Trivy ne plante si aucune valeur n'est fournie
 }
 
 variable "equipe" {
