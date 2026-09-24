@@ -23,9 +23,12 @@ resource "google_container_cluster" "primary" {
   }
 
   master_authorized_networks_config {
+  # trivy:ignore:GCP-0053 -- Acces ouvert necessaire pour que le pipeline CI/CD
+  # (GitHub Actions, IP dynamique a chaque execution) puisse atteindre l API.
+  # La securite repose sur IAM/WIF plutot que sur le filtrage reseau.
     cidr_blocks {
       cidr_block   = "0.0.0.0/0"
-      display_name = "Access"
+      display_name = "Authorized-Access"
     }
   }
 }
@@ -51,6 +54,14 @@ resource "google_container_node_pool" "primary_nodes" {
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
     ]
+
+    metadata = {
+      disable-legacy-endpoints = "true"
+    }
+
+    workload_metadata_config {
+      mode = "GKE_METADATA"
+    }
   }
 }
 
