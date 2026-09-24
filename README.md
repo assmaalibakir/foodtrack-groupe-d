@@ -1,13 +1,12 @@
 # foodtrack-groupe-d
 FoodTrack sur GCP, Équipe D (Terraform, GKE, CI/CD), entrepôt Eemshaven
-# foodtrack-groupe-d
-FoodTrack sur GCP, Équipe D (Terraform, GKE, CI/CD), entrepôt Eemshaven
 Ce projet contient la configuration Terraform complète pour le déploiement de l'infrastructure de la plateforme FoodTrack sur Google Cloud Platform (GCP).
 
 L'architecture repose sur une approche modulaire respectant les principes d'isolation réseau, de gestion centralisée des états (remote state), et d'intégration continue sécurisée via la fédération d'identités (WIF).
 
 🏗 Architecture globale
 L'infrastructure est découpée en quatre modules principaux :
+```text
 .
 ├── main.tf             # Configuration racine (interconnexion des modules)
 ├── variables.tf        # Variables globales du projet
@@ -18,6 +17,7 @@ L'infrastructure est découpée en quatre modules principaux :
    ├── compute/         # Cluster GKE Privé, Node Pool, Bastion Compute Engine
    ├── stockage/        # Artifact Registry Docker, Buckets Storage (Backup & Logs)
    └── wif-github/      # Fédération d'identité Workload Identity (GitHub Actions OIDC)
+```
 
 🏷 Convention de nommage
 Toutes les ressources respectent la convention de nommage imposée :
