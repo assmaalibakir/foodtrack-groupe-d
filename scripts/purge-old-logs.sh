@@ -7,21 +7,28 @@
 set -euo pipefail
 
 # Nom du bucket contenant les exports de logs
-# Cette valeur sera remplacee quand le vrai bucket sera connu
 BUCKET_NAME="foodtrack-d-logs-dev"
+
 # Nombre de jours de conservation
 RETENTION_DAYS=30
 
 # Calcule la date limite
-# Les fichiers plus anciens que cette date pourront etre supprimes
 LIMIT_DATE=$(date -d "-${RETENTION_DAYS} days" +"%Y-%m-%d")
 
-# Affiche la date limite utilisee
 echo "Suppression des exports de logs anterieurs au ${LIMIT_DATE}"
 
-# Liste les objets du bucket avec leur date
-# Puis filtre ceux qui sont plus anciens que la date limite
-gcloud storage ls -l "gs://${BUCKET_NAME}/**" | \
+# Recupere la liste des objets du bucket
+OBJECTS=$(gcloud storage ls -l "gs://${BUCKET_NAME}/**" 2>/dev/null || true)
+
+# Si le bucket est vide, le script se termine proprement
+if [ -z "${OBJECTS}" ]; then
+    echo "Aucun export de logs present dans le bucket."
+    echo "Purge terminee"
+    exit 0
+fi
+
+# Recherche les fichiers plus anciens que la date limite
+echo "${OBJECTS}" | \
 awk -v limit="${LIMIT_DATE}" '
 {
     if ($2 ~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}/) {
@@ -33,10 +40,10 @@ awk -v limit="${LIMIT_DATE}" '
     }
 }' | while read -r file
 do
-    # Supprime chaque fichier trop ancien
-    echo "Suppression de : ${file}"
-    gcloud storage rm "${file}"
+    if [ -n "${file}" ]; then
+        echo "Suppression de : ${file}"
+        gcloud storage rm "${file}"
+    fi
 done
 
-# Affiche un message de fin
 echo "Purge terminee"
