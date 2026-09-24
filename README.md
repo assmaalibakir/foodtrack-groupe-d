@@ -93,9 +93,9 @@ Le compte de service du pipeline dispose de droits strictement minimaux : * `rol
 
 🔒 Sécurité & Accès au Cluster GKE
 
-Plan de contrôle (Master) : Les accès réseau sont restreints via `master_authorized_networks_config`.
-Bastion SSH : Accessible uniquement via Identity-Aware Proxy (IAP) (`35.235.240.0/20`) via le port 22.
-Nodes Kubernetes : Situés dans des sous-réseaux privés sans adresse IP publique, accédant à Internet pour les mises à jour uniquement via le Cloud NAT.
+- Plan de contrôle (Master) : Les accès réseau sont restreints via `master_authorized_networks_config`.
+- Bastion SSH : Accessible uniquement via Identity-Aware Proxy (IAP) (`35.235.240.0/20`) via le port 22.
+- Nodes Kubernetes : Situés dans des sous-réseaux privés sans adresse IP publique, accédant à Internet pour les mises à jour uniquement via le Cloud NAT.
 
 ## Chaîne de livraison (CI/CD)
 
