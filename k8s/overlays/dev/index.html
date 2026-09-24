@@ -1,9 +1,794 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="fr">
-<head><meta charset="utf-8"><title>FoodTrack dev</title></head>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Tableau de bord FoodTrack">
+  <title>FoodTrack · Développement</title>
+
+  <style>
+    :root {
+      --accent: #d97706;
+      --accent-dark: #9a4f05;
+      --soft: #fef3c7;
+      --ink: #17202a;
+      --muted: #68747f;
+      --line: #e4e9e7;
+      --surface: #ffffff;
+      --background: #f4f7f6;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 100% 0, var(--soft), transparent 32rem),
+        var(--background);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .topbar {
+      min-height: 82px;
+      padding: 12px clamp(20px, 5vw, 72px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      background: rgba(255, 255, 255, .94);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-decoration: none;
+      color: var(--ink);
+    }
+
+    .logo {
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 1.3rem;
+    }
+
+    .brand small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+    }
+
+    .environment {
+      padding: 8px 12px;
+      color: var(--accent-dark);
+      background: var(--soft);
+      border-radius: 999px;
+      font-size: .78rem;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 40px));
+      margin: auto;
+      padding: 48px 0;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.45fr .75fr;
+      gap: 40px;
+      padding: clamp(30px, 5vw, 58px);
+      color: white;
+      background: linear-gradient(
+        130deg,
+        #17202a 0%,
+        #203336 55%,
+        var(--accent-dark) 100%
+      );
+      border-radius: 30px;
+      box-shadow: 0 20px 60px rgba(20, 37, 43, .13);
+    }
+
+    .eyebrow {
+      color: #99f6e4;
+      font-size: .76rem;
+      font-weight: bold;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 720px;
+      margin: 14px 0 18px;
+      font-size: clamp(2.3rem, 5vw, 4.3rem);
+      line-height: 1.02;
+      letter-spacing: -.05em;
+    }
+
+    .hero-description {
+      max-width: 650px;
+      margin: 0;
+      color: #d8e2e1;
+      font-size: 1.05rem;
+      line-height: 1.7;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .button {
+      min-height: 46px;
+      padding: 0 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      border-radius: 12px;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .button-primary {
+      background: var(--accent);
+    }
+
+    .button-secondary {
+      background: rgba(255, 255, 255, .08);
+      border: 1px solid rgba(255, 255, 255, .3);
+    }
+
+    .status-card {
+      align-self: center;
+      padding: 23px;
+      color: var(--ink);
+      background: rgba(255, 255, 255, .97);
+      border-radius: 20px;
+    }
+
+    .status-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .status-title span {
+      color: var(--muted);
+    }
+
+    .status-title strong {
+      color: #15803d;
+    }
+
+    .status-title strong.offline {
+      color: #b91c1c;
+    }
+
+    .service {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding-top: 17px;
+      font-size: .9rem;
+    }
+
+    .service-name {
+      display: flex;
+      align-items: center;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      margin-right: 9px;
+      background: #22c55e;
+      border-radius: 50%;
+    }
+
+    .dot.pending {
+      background: #f59e0b;
+    }
+
+    .dot.offline {
+      background: #ef4444;
+    }
+
+    .updated {
+      margin: 20px 0 0;
+      color: var(--muted);
+      font-size: .76rem;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin: 22px 0;
+    }
+
+    .metric {
+      padding: 22px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+    }
+
+    .metric span,
+    .metric small {
+      display: block;
+      color: var(--muted);
+    }
+
+    .metric strong {
+      display: block;
+      margin: 5px 0;
+      font-size: 1.8rem;
+    }
+
+    .metric.good {
+      border-top: 4px solid #22c55e;
+    }
+
+    .metric.watch {
+      border-top: 4px solid #f59e0b;
+    }
+
+    .metric.alert {
+      border-top: 4px solid #ef4444;
+    }
+
+    .metric.info {
+      border-top: 4px solid var(--accent);
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(280px, .65fr);
+      gap: 22px;
+    }
+
+    .panel {
+      padding: 25px;
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .panel h2 {
+      margin: 7px 0 20px;
+      font-size: 1.4rem;
+    }
+
+    .section-label {
+      color: var(--accent);
+      font-size: .74rem;
+      font-weight: bold;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .demo {
+      padding: 7px 10px;
+      color: var(--accent-dark);
+      background: var(--soft);
+      border-radius: 999px;
+      font-size: .7rem;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      padding: 12px 10px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      font-size: .7rem;
+      text-transform: uppercase;
+    }
+
+    td {
+      padding: 16px 10px;
+      border-bottom: 1px solid #eff2f1;
+      white-space: nowrap;
+    }
+
+    .vehicle,
+    .temperature {
+      font-weight: bold;
+    }
+
+    .tag {
+      padding: 5px 9px;
+      border-radius: 999px;
+      font-size: .72rem;
+      font-weight: bold;
+    }
+
+    .tag-ok {
+      color: #166534;
+      background: #dcfce7;
+    }
+
+    .tag-watch {
+      color: #92400e;
+      background: #fef3c7;
+    }
+
+    .tag-alert {
+      color: #991b1b;
+      background: #fee2e2;
+    }
+
+    .threshold {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      padding: 20px;
+      background: linear-gradient(135deg, var(--soft), white);
+      border-radius: 16px;
+    }
+
+    .threshold span {
+      color: var(--muted);
+    }
+
+    .threshold strong {
+      color: var(--accent-dark);
+      font-size: 1.7rem;
+    }
+
+    .config-list {
+      margin: 18px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .config-list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: .84rem;
+    }
+
+    .config-list span {
+      color: var(--muted);
+    }
+
+    .quality-note {
+      margin-top: 20px;
+      padding: 17px;
+      color: white;
+      background: #17202a;
+      border-radius: 16px;
+    }
+
+    .quality-note strong {
+      color: #99f6e4;
+      font-size: .74rem;
+      text-transform: uppercase;
+    }
+
+    .quality-note p {
+      margin: 8px 0 0;
+      color: #d8dfdf;
+      font-size: .83rem;
+      line-height: 1.55;
+    }
+
+    footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      width: min(1180px, calc(100% - 40px));
+      margin: auto;
+      padding: 0 0 35px;
+      color: var(--muted);
+      font-size: .8rem;
+    }
+
+    @media (max-width: 950px) {
+      .hero,
+      .content {
+        grid-template-columns: 1fr;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 620px) {
+      .topbar {
+        align-items: flex-start;
+      }
+
+      main {
+        width: calc(100% - 24px);
+        padding-top: 20px;
+      }
+
+      .hero {
+        padding: 28px 22px;
+        border-radius: 22px;
+      }
+
+      h1 {
+        font-size: 2.35rem;
+      }
+
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+
+      .panel-header,
+      footer {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+
 <body>
-<h1>FoodTrack - dev</h1>
-<p>Portail de suivi qualite.</p>
-<p><a href="/api/">Consulter l'API</a></p>
+  <header class="topbar">
+    <a class="brand" href="/">
+      <img class="logo" src="/logo.png" alt="Logo FoodTrack Brands">
+      <span>
+        <strong>FoodTrack</strong>
+        <small>Supervision de la chaîne du froid</small>
+      </span>
+    </a>
+
+    <span class="environment">Développement</span>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <span class="eyebrow">Qualité et traçabilité</span>
+        <h1>La température de vos livraisons, sous contrôle.</h1>
+
+        <p class="hero-description">
+          Suivez les capteurs, repérez les écarts et protégez vos
+          produits pendant chaque tournée.
+        </p>
+
+        <div class="actions">
+          <a class="button button-primary" href="/api/">
+            Consulter l'API
+          </a>
+
+          <a class="button button-secondary" href="/healthz">
+            Vérifier le portail
+          </a>
+        </div>
+      </div>
+
+      <aside class="status-card">
+        <div class="status-title">
+          <span>État de la plateforme</span>
+          <strong id="global-status">Vérification…</strong>
+        </div>
+
+        <div class="service">
+          <span class="service-name">
+            <i class="dot"></i>
+            Portail web
+          </span>
+          <strong>En ligne</strong>
+        </div>
+
+        <div class="service">
+          <span class="service-name">
+            <i class="dot pending" id="api-dot"></i>
+            API capteurs
+          </span>
+          <strong id="api-status">Test en cours</strong>
+        </div>
+
+        <div class="service">
+          <span class="service-name">
+            <i class="dot"></i>
+            Cache Redis
+          </span>
+          <strong>Interne</strong>
+        </div>
+
+        <p class="updated">
+          Dernière vérification :
+          <span id="last-update">—</span>
+        </p>
+      </aside>
+    </section>
+
+    <section class="metrics">
+      <article class="metric info">
+        <span>Capteurs suivis</span>
+        <strong>24</strong>
+        <small>sur 6 tournées actives</small>
+      </article>
+
+      <article class="metric good">
+        <span>Relevés conformes</span>
+        <strong>21</strong>
+        <small>87,5 % du parc</small>
+      </article>
+
+      <article class="metric watch">
+        <span>À surveiller</span>
+        <strong>2</strong>
+        <small>écart inférieur à 1 °C</small>
+      </article>
+
+      <article class="metric alert">
+        <span>Alertes</span>
+        <strong>1</strong>
+        <small>intervention requise</small>
+      </article>
+    </section>
+
+    <section class="content">
+      <article class="panel">
+        <div class="panel-header">
+          <div>
+            <span class="section-label">Derniers relevés</span>
+            <h2>Suivi des tournées</h2>
+          </div>
+
+          <span class="demo">Données de démonstration</span>
+        </div>
+
+        <div class="table-wrapper">
+          <div style="margin:18px 0;padding:18px 20px;border:1px solid #dbe5e3;border-radius:16px;background:linear-gradient(135deg,#f0fdfa,#ffffff);">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;">
+        <div>
+            <div style="font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#0f766e;">
+                Produit surveillé
+            </div>
+            <div style="margin-top:5px;font-size:20px;font-weight:900;color:#17212b;">
+                Fromage emballé
+            </div>
+            <div style="margin-top:4px;font-size:13px;color:#64748b;">
+                Consigne fabricant
+            </div>
+        </div>
+
+        <div style="padding:12px 18px;border-radius:14px;background:#17212b;color:white;text-align:center;">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#99f6e4;">
+                Seuil de l'environnement
+            </div>
+            <div style="margin-top:3px;font-size:24px;font-weight:900;">
+                8 °C
+            </div>
+        </div>
+    </div>
+
+    <p style="margin:15px 0 0;color:#475569;font-size:13px;line-height:1.6;">
+        Un dépassement du seuil est non conforme. La marge de 1 °C sert uniquement
+        à distinguer un écart faible d'une alerte critique.
+    </p>
+</div>
+
+<div style="overflow-x:auto;border:1px solid #e5e7eb;border-radius:18px;background:white;">
+    <table style="width:100%;border-collapse:collapse;min-width:850px;">
+        <thead>
+            <tr style="background:#17212b;color:white;text-align:left;">
+                <th style="padding:16px;">Lieu</th>
+                <th style="padding:16px;">Aliment</th>
+                <th style="padding:16px;">Température</th>
+                <th style="padding:16px;">Seuil maximum</th>
+                <th style="padding:16px;">Écart</th>
+                <th style="padding:16px;">Résultat</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;font-weight:700;color:#17212b;">
+        Entrepôt de développement
+    </td>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;">
+        Fromage emballé
+    </td>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;font-weight:800;">
+        6,5 °C
+    </td>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;">
+        8 °C
+    </td>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;font-weight:700;">
+        -1,5 °C
+    </td>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;">
+        <span style="display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border-radius:999px;background:#dcfce7;color:#166534;font-size:12px;font-weight:800;white-space:nowrap;">
+            <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;"></span>
+            Conforme
+        </span>
+    </td>
+</tr><tr>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;font-weight:700;color:#17212b;">
+        Camion de test
+    </td>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;">
+        Fromage emballé
+    </td>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;font-weight:800;">
+        8,8 °C
+    </td>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;">
+        8 °C
+    </td>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;font-weight:700;">
+        +0,8 °C
+    </td>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;">
+        <span style="display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border-radius:999px;background:#ffedd5;color:#9a3412;font-size:12px;font-weight:800;white-space:nowrap;">
+            <span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;"></span>
+            Non conforme
+        </span>
+    </td>
+</tr><tr>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;font-weight:700;color:#17212b;">
+        Laboratoire
+    </td>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;">
+        Fromage emballé
+    </td>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;font-weight:800;">
+        7,7 °C
+    </td>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;">
+        8 °C
+    </td>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;font-weight:700;">
+        -0,3 °C
+    </td>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;">
+        <span style="display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border-radius:999px;background:#dcfce7;color:#166534;font-size:12px;font-weight:800;white-space:nowrap;">
+            <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;"></span>
+            Conforme
+        </span>
+    </td>
+</tr><tr>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;font-weight:700;color:#17212b;">
+        Zone de chargement
+    </td>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;">
+        Fromage emballé
+    </td>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;font-weight:800;">
+        9,4 °C
+    </td>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;">
+        8 °C
+    </td>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;font-weight:700;">
+        +1,4 °C
+    </td>
+    <td style="padding:16px;border-bottom:1px solid #e5e7eb;">
+        <span style="display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border-radius:999px;background:#fee2e2;color:#991b1b;font-size:12px;font-weight:800;white-space:nowrap;">
+            <span style="width:8px;height:8px;border-radius:50%;background:#ef4444;"></span>
+            Alerte critique
+        </span>
+    </td>
+</tr>
+        </tbody>
+    </table>
+</div>
+        </div>
+      </article>
+
+      <aside class="panel">
+        <span class="section-label">Configuration</span>
+        <h2>Environnement actif</h2>
+
+        <div class="threshold">
+          <span>Seuil configuré</span>
+          <strong>8 °C</strong>
+        </div>
+
+        <ul class="config-list">
+          <li>
+            <span>Namespace</span>
+            <strong>foodtrack-dev</strong>
+          </li>
+
+          <li>
+            <span>Niveau de journal</span>
+            <strong>debug</strong>
+          </li>
+
+          <li>
+            <span>Région</span>
+            <strong>europe-west4</strong>
+          </li>
+
+          <li>
+            <span>Stockage</span>
+            <strong>Redis persistant</strong>
+          </li>
+        </ul>
+
+        <div class="quality-note">
+          <strong>Conseil qualité</strong>
+
+          <p>
+            Traitez en priorité les relevés signalés en rouge et
+            contrôlez la porte du véhicule concerné.
+          </p>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <footer>
+    <span>FoodTrack Brands · Équipe D</span>
+    <span>Plateforme GKE · Développement</span>
+  </footer>
+
+  <script>
+    const apiStatus = document.getElementById("api-status");
+    const apiDot = document.getElementById("api-dot");
+    const globalStatus = document.getElementById("global-status");
+
+    document.getElementById("last-update").textContent =
+      new Intl.DateTimeFormat("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      }).format(new Date());
+
+    fetch("/api/", { cache: "no-store" })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status);
+        }
+
+        apiStatus.textContent = "En ligne";
+        apiDot.className = "dot";
+        globalStatus.textContent = "Opérationnelle";
+      })
+      .catch(() => {
+        apiStatus.textContent = "Indisponible";
+        apiDot.className = "dot offline";
+        globalStatus.textContent = "Service dégradé";
+        globalStatus.classList.add("offline");
+      });
+  </script>
 </body>
 </html>

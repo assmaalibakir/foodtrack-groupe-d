@@ -44,7 +44,7 @@ module "stockage" {
 
 # --- Module Compute (GKE & Bastion) ---
 module "compute" {
-source = "./modules/compute"
+  source = "./modules/compute"
 
   region           = var.region
   zone             = var.zone
