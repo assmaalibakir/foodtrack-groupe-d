@@ -21,15 +21,16 @@ L'infrastructure est découpée en quatre modules principaux :
 🏷 Convention de nommage
 Toutes les ressources respectent la convention de nommage imposée :
 
-Ressource	               Convention de nom	
-VPC	                     foodtrack-<equipe>-vpc
-Sous-réseau	               foodtrack-<equipe>-subnet
-Cluster GKE	               foodtrack-<equipe>-cluster
-Node pool GKE	            foodtrack-<equipe>-pool
-Bastion VM	               foodtrack-<equipe>-bastion
-Bucket State Terraform	   foodtrack-<equipe>-tfstate-<project-id>
-Dépôt d'images	            foodtrack-<equipe>-images
-Namespaces Kubernetes	   foodtrack-dev, foodtrack-test, foodtrack-prod
+| Ressource | Convention de nom |
+|---|---|
+| VPC | foodtrack-<equipe>-vpc |
+| Sous-réseau | foodtrack-<equipe>-subnet |
+| Cluster GKE | foodtrack-<equipe>-cluster |
+| Node pool GKE | foodtrack-<equipe>-pool |
+| Bastion VM | foodtrack-<equipe>-bastion |
+| Bucket State Terraform | foodtrack-<equipe>-tfstate-<project-id> |
+| Dépôt d'images | foodtrack-<equipe>-images |
+| Namespaces Kubernetes | foodtrack-dev, foodtrack-test, foodtrack-prod |
 
 🛠 Prérequis
 Google Cloud SDK (gcloud) installé et authentifié.
