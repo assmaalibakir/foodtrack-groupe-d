@@ -3,124 +3,257 @@
 
 ## Objectif
 
-L’objectif de cet audit est de vérifier les principaux éléments de sécurité de l’infrastructure FoodTrack.
+L'objectif de cet audit est de vérifier les principaux éléments de sécurité
+de l'infrastructure FoodTrack.
 
-Nous vérifions les comptes de service, les rôles IAM, le pare-feu, le bastion, le plan de contrôle GKE, les secrets et les images Docker.
+Les contrôles portent notamment sur les comptes de service, les rôles IAM,
+le pare-feu, le bastion, le plan de contrôle GKE, les secrets et les images.
 
----
-
-## IAM
-
-### Comptes de service observés
-
-Deux comptes de service actifs ont été identifiés dans le projet.
-
-- `foodtrack-ci@form-gke-eleve04-42a1.iam.gserviceaccount.com`
-
-  - Usage : CI/CD avec GitHub Actions et Workload Identity Federation
-  - Rôles observés : Kubernetes Engine Developer et Artifact Registry Writer
-- `944188075327-compute@developer.gserviceaccount.com`
-
-  - Nom : Compute Engine default service account
-  - Usage : compte créé automatiquement par GCP
-  - Rôle observé : Editor
+## IAM et authentification
 
 ### Constat
 
-Le compte `foodtrack-ci` est utilisé pour la CI/CD et semble également être utilisé par les nœuds GKE.
+Le pipeline CI/CD utilise le compte de service :
 
-Il serait préférable de séparer ces deux usages avec un compte de service dédié aux nœuds.
+`foodtrack-ci@form-gke-eleve04-42a1.iam.gserviceaccount.com`
 
-Le compte Compute Engine par défaut possède encore le rôle `Editor`, qui donne des droits trop larges.
+Les rôles attribués sont :
+
+- `roles/artifactregistry.writer`
+- `roles/container.developer`
+
+L'authentification entre GitHub Actions et Google Cloud utilise
+Workload Identity Federation.
+
+Le pool utilisé est `github-pool-dev` et il est restreint au dépôt :
+
+`assmaalibakir/foodtrack-groupe-d`
+
+Aucune clé JSON de compte de service n'est stockée dans le dépôt
+ou dans GitHub Actions.
 
 ### Résultat
 
-À corriger ou à justifier : vérifier les comptes réellement utilisés par les nœuds GKE et limiter leurs permissions au strict nécessaire.
-
----
+Conforme : le pipeline utilise une authentification temporaire avec WIF
+et ne dépend pas d'une clé JSON permanente.
 
 ## Pare-feu
 
 ### Constat
 
-Une règle de pare-feu permet l’accès SSH au bastion.
+Une règle de pare-feu permet l'accès SSH au bastion.
 
-- Nom : `foodtrack-d-bastion`
-- Protocole : TCP
 - Port : `22`
+- Protocole : TCP
 - Source autorisée : `35.235.240.0/20`
 - Cible : `bastion-node`
 
-La règle SSH n’est pas ouverte à `0.0.0.0/0`.
-
-L’accès est donc limité à une plage d’adresses précise et cible uniquement le bastion.
+L'accès SSH n'est pas ouvert à `0.0.0.0/0`.
 
 ### Résultat
 
-Conforme : l’accès SSH n’est pas ouvert à tout Internet.
-
----
+Conforme : l'accès SSH au bastion est limité à une plage réseau précise.
 
 ## Bastion
 
 ### Constat
 
-Le bastion utilisé dans le projet est `foodtrack-d-bastion`.
+Le bastion utilisé dans le projet est :
 
-L’accès SSH est limité au port `22` et à une plage d’adresses précise.
+`foodtrack-d-bastion`
 
-L’authentification par mot de passe a été désactivée afin de conserver uniquement un accès par clé SSH.
+L'accès SSH est limité par la règle de pare-feu.
+
+L'authentification par mot de passe a été désactivée afin de conserver
+un accès sécurisé par clé SSH.
 
 ### Résultat
 
-Conforme : l’accès SSH au bastion est restreint et l’authentification par mot de passe est désactivée.
-
----
+Conforme : l'accès SSH au bastion est restreint et l'authentification
+par mot de passe est désactivée.
 
 ## Plan de contrôle GKE
 
 ### Constat
 
-Le plan de contrôle du cluster GKE est actuellement accessible publiquement.
+Le plan de contrôle GKE reste accessible depuis `0.0.0.0/0`.
 
-Une restriction aux adresses IP autorisées du bastion est prévue afin de réduire son exposition.
+Cette configuration a été détectée par Trivy avec la règle :
+
+`GCP-0053`
+
+La restriction par adresse IP n'a pas été conservée car les runners
+GitHub Actions utilisent des adresses IP dynamiques qui peuvent changer
+à chaque exécution du pipeline.
+
+La sécurité de l'accès repose donc principalement sur IAM et
+Workload Identity Federation.
+
+Cette exception est documentée directement dans le code Terraform
+avec la règle :
+
+`# trivy:ignore:GCP-0053`
 
 ### Résultat
 
-À corriger : appliquer la restriction puis vérifier son fonctionnement.
+Exception documentée : le plan de contrôle reste exposé publiquement,
+mais l'accès au cluster nécessite une authentification IAM/WIF.
 
----
+Ce choix augmente l'exposition réseau et constitue un compromis lié
+au fonctionnement du pipeline CI/CD.
+
+## Scan de sécurité Terraform
+
+### Constat
+
+Un scan Trivy est exécuté sur le code Terraform dans le job `qualite`
+du pipeline CI/CD.
+
+Trois problèmes de niveau HIGH ont été détectés dans
+`modules/compute/main.tf`.
+
+### GCP-0048
+
+Les anciens endpoints de métadonnées étaient activés.
+
+Correction appliquée :
+
+`disable-legacy-endpoints = "true"`
+
+### GCP-0057
+
+La configuration des métadonnées des nœuds n'était pas suffisamment sécurisée.
+
+Correction appliquée :
+
+```text
+workload_metadata_config {
+  mode = "GKE_METADATA"
+}
+```
+
+### GCP-0053
+
+Le plan de contrôle GKE est accessible depuis `0.0.0.0/0`.
+
+Cette alerte n'a pas été corrigée et fait l'objet d'une exception documentée
+car le pipeline GitHub Actions utilise des adresses IP dynamiques.
+
+### Résultat
+
+Deux problèmes ont été corrigés.
+
+Le troisième fait l'objet d'une exception documentée et justifiée.
 
 ## Secrets
 
 ### Constat
 
-Les secrets Kubernetes sont créés par un script PowerShell.
+Aucune clé de service ni secret sensible n'est stocké dans le dépôt
+ou dans GitHub Actions.
 
-Les valeurs sensibles sont générées aléatoirement au moment de l’exécution. Elles ne sont pas enregistrées dans un fichier et ne sont pas affichées dans le terminal
+L'authentification du pipeline utilise Workload Identity Federation.
+
+Les secrets applicatifs, comme le mot de passe du cache et le jeton de l'API,
+sont stockés dans des objets `Secret` Kubernetes.
+
+Ils ne sont pas écrits en clair dans le dépôt Git.
 
 ### Résultat
 
-Conforme : aucune valeur sensible n’est stockée directement dans le dépôt Git par ce script
+Conforme : les informations sensibles ne sont pas stockées directement
+dans le dépôt.
 
 ## Images Docker
 
 ### Constat
 
-À vérifier.
+Les images déployées en production utilisent des versions précises.
 
-Il faut vérifier l’origine des images utilisées, leurs versions et s’assurer qu’elles n’utilisent pas inutilement le tag `latest`.
+### API
 
-Il faut également vérifier le résultat du dernier scan de sécurité des images.
+`europe-west4-docker.pkg.dev/form-gke-eleve04-42a1/foodtrack-d-images/api-capteurs:485a7c1a21c7bf61d57855bbf09317ec565e45b4`
+
+### Portail
+
+`europe-west4-docker.pkg.dev/form-gke-eleve04-42a1/foodtrack-d-images/portail-qualite:485a7c1a21c7bf61d57855bbf09317ec565e45b4`
+
+### Cache
+
+`redis:8.10.1`
+
+Les images de l'API et du portail sont stockées dans Artifact Registry
+et utilisent le SHA du commit comme tag.
+
+Cela permet de connaître précisément la version déployée.
+
+Le tag `latest` n'est pas utilisé.
+
+Les scans des images fournies utilisent un seuil `CRITICAL`
+avec l'option `ignore-unfixed`.
+
+Le pipeline échoue donc lorsqu'une vulnérabilité critique disposant
+d'un correctif est détectée.
+
+## Scan des configurations Kubernetes
+
+### Constat
+
+Trivy a également identifié deux problèmes de niveau HIGH sur les composants
+API, portail et cache dans les environnements DEV, TEST et PROD.
+
+- `KSV-0014` : le système de fichiers racine n'est pas configuré en lecture seule.
+- `KSV-0118` : le contexte de sécurité par défaut est utilisé.
 
 ### Résultat
 
-À compléter après vérification.
+À améliorer : les contextes de sécurité des conteneurs peuvent être renforcés
+afin de réduire les risques signalés par Trivy.
 
----
+## Protection de la production
+
+### Constat
+
+L'environnement GitHub `production` est protégé.
+
+- Un relecteur est obligatoire avant le déploiement.
+- Le contournement administrateur est désactivé.
+- Les déploiements sont limités à la branche `main`.
+
+Le premier déploiement en production a été validé manuellement
+et s'est terminé avec succès.
+
+### Résultat
+
+Conforme : le déploiement en production nécessite une validation avant exécution.
+
+## Exception Terraform
+
+### Constat
+
+Le bucket utilisé pour stocker le state Terraform a été créé manuellement
+avant le premier `terraform init`.
+
+Cette création manuelle était nécessaire afin de disposer du backend Terraform
+avant le déploiement de l'infrastructure.
+
+Cette exception est documentée dans le README avec les commandes utilisées.
+
+### Résultat
+
+Exception documentée et justifiée.
 
 ## Conclusion
 
-L’audit a permis de vérifier plusieurs points de sécurité de l’infrastructure.
+L'audit a permis d'identifier et de corriger plusieurs problèmes de sécurité.
 
-Le pare-feu et le bastion sont correctement restreints. Les secrets ne sont pas stockés directement dans le dépôt Git. Des points restent encore à finaliser concernant les comptes de service, le plan de contrôle GKE et les images Docker
+L'authentification du pipeline utilise Workload Identity Federation sans clé JSON,
+les accès SSH sont restreints, les secrets ne sont pas stockés en clair et
+les images utilisent des versions identifiables.
+
+Les scans Trivy sont intégrés au pipeline et ont permis de détecter plusieurs
+mauvaises configurations.
+
+Le principal compromis restant concerne l'exposition publique du plan de contrôle
+GKE, conservée pour permettre le fonctionnement du pipeline GitHub Actions
+et documentée comme exception.
