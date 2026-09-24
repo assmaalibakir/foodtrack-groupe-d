@@ -20,6 +20,12 @@ on:
           - stop
           - start
 
+# Obligatoire pour que GitHub emette un jeton OIDC, sinon l authentification
+# WIF echoue avec "did not inject ACTIONS_ID_TOKEN_REQUEST_TOKEN".
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   gerer-cluster:
     runs-on: ubuntu-latest
