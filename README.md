@@ -148,3 +148,5 @@ gcloud storage buckets update gs://foodtrack-d-tfstate-foodtrack-equipe-d --vers
 ```
 
 Le versionnage est activé sur ce bucket pour permettre de revenir à une version antérieure du state en cas de corruption ou de mauvaise manipulation. Aucune autre ressource du projet n'est créée en dehors de Terraform.
+
+<!-- demo soutenance -->
