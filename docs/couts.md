@@ -3,116 +3,233 @@
 
 ## Objectif
 
-L'objectif est d'identifier les principales ressources qui génèrent des coûts
-et les actions permettant de réduire ces coûts.
+L'objectif de cette analyse est d'identifier les principales ressources
+qui génèrent des coûts dans l'infrastructure FoodTrack et de proposer
+des solutions permettant de limiter les dépenses inutiles.
 
-## Ressources principales
+## Cluster GKE
 
-Les principales ressources de l'infrastructure sont :
+Le cluster utilisé est :
 
-- Cluster GKE : `foodtrack-d-cluster`
-- Node pool : `foodtrack-d-pool`
-- Bastion : `foodtrack-d-bastion`
-- Cloud NAT : `foodtrack-d-nat`
-- Bucket de sauvegarde : `foodtrack-d-backup-dev`
-- Bucket d'exports de logs : `foodtrack-d-logs-dev`
-- Bucket Terraform : `foodtrack-d-tfstate-foodtrack-equipe-d`
+`foodtrack-d-cluster`
 
-## Configuration du node pool
+Il s'agit d'un cluster GKE Standard zonal situé dans la zone :
 
-Le node pool `foodtrack-d-pool` utilise actuellement les caractéristiques suivantes :
+`europe-west4-b`
 
-- Zone : `europe-west4-b`
-- Type de machine : `e2-medium`
-- Nombre de nœuds actuellement actifs : `4`
-- Autoscaling : activé
-- Nombre minimal de nœuds : `1`
-- Nombre maximal de nœuds : `5`
-- Type de disque : `pd-standard`
-- Taille du disque : `50 Go` par nœud
-- Nœuds privés : activés
-- Mode de provisionnement : standard
+Le choix d'un cluster zonal permet de limiter les coûts par rapport
+à une architecture régionale plus complexe.
 
-Cette configuration permet d'adapter le nombre de nœuds à la charge du cluster
-grâce à l'autoscaling.
+En contrepartie, le cluster dépend d'une seule zone et offre donc
+une résilience plus faible en cas d'indisponibilité complète de cette zone.
 
-Le choix de machines `e2-medium` permet d'utiliser des machines de taille modérée,
-adaptées à un environnement de projet et de formation.
+## Node pool
 
-## Ressources permanentes
+Le node pool utilisé est :
 
-Certaines ressources peuvent continuer à générer des coûts même lorsqu'elles sont peu utilisées.
+`foodtrack-d-pool`
 
-Il faut notamment surveiller :
+Sa configuration observée est :
 
-- Les nœuds GKE lorsqu'ils restent actifs.
+- Type de machine : `e2-medium`.
+- Nombre actuel de nœuds : 4.
+- Autoscaling : activé.
+- Minimum : 1 nœud.
+- Maximum : 5 nœuds.
+- Type de disque : `pd-standard`.
+- Taille du disque : 50 Go par nœud.
+- Nœuds privés : activés.
+- Provisionnement : standard.
+
+## Justification du dimensionnement
+
+Le type de machine `e2-medium` a été retenu car il fournit des ressources
+suffisantes pour faire fonctionner l'application FoodTrack tout en limitant
+le coût par rapport à des machines plus puissantes.
+
+Les disques utilisés sont des disques persistants standards `pd-standard`
+de 50 Go.
+
+Ce type de disque est moins coûteux qu'un disque SSD et ses performances
+sont suffisantes pour les besoins de ce projet.
+
+## Autoscaling
+
+L'autoscaling permet au node pool de varier entre :
+
+- Minimum : 1 nœud.
+- Maximum : 5 nœuds.
+
+Ce mécanisme permet d'adapter les ressources à la charge.
+
+Lorsque la charge augmente, des nœuds peuvent être ajoutés.
+
+Lorsque la charge diminue, les ressources inutiles peuvent être supprimées,
+ce qui permet de limiter les coûts.
+
+## Extinction du node pool
+
+Le script :
+
+`scripts/cluster-schedule.sh`
+
+permet de désactiver l'autoscaling puis de réduire le node pool à zéro
+lorsque l'environnement n'est pas utilisé.
+
+Lors du redémarrage, le script remet un nœud puis réactive l'autoscaling
+entre 1 et 5 nœuds.
+
+Ce choix permet de réduire les coûts pendant les périodes où
+l'environnement de formation n'est pas utilisé.
+
+## Estimation avec Google Cloud Pricing Calculator
+
+Une estimation a été réalisée avec le Google Cloud Pricing Calculator
+en utilisant les caractéristiques réelles du node pool.
+
+Les paramètres utilisés sont :
+
+| Paramètre              | Valeur                     | Justification                                                  |
+| ----------------------- | -------------------------- | -------------------------------------------------------------- |
+| Nombre d'instances      | 4                          | Le node pool possède actuellement 4 nœuds.                   |
+| Famille                 | General Purpose            | Correspond à la famille utilisée par les machines E2.        |
+| Série                  | E2                         | Série réellement utilisée par le node pool.                 |
+| Type de machine         | `e2-medium`              | Type de machine réellement configuré.                        |
+| Région                 | `europe-west4`           | Le cluster est situé dans la zone`europe-west4-b`.          |
+| Provisionnement         | Regular                    | Les nœuds ne sont pas des instances Spot.                     |
+| Système d'exploitation | Linux sans licence payante | Aucun coût de licence supplémentaire n'est nécessaire.      |
+| Type de disque          | `pd-standard`            | Type de disque réellement utilisé.                           |
+| Taille du disque        | 50 GiB par instance        | Taille réellement configurée sur le node pool.               |
+| Réduction d'engagement | Aucune                     | Aucun engagement sur 1 ou 3 ans n'est utilisé pour ce projet. |
+
+## Scénario 1 : fonctionnement continu
+
+Le premier scénario représente les quatre nœuds fonctionnant en continu.
+
+Temps d'utilisation :
+
+`730 heures par mois et par instance`
+
+Le Google Cloud Pricing Calculator fournit une estimation de :
+
+`116,51 $ par mois`
+
+Ce scénario représente le coût lorsque les nœuds restent disponibles
+24 heures sur 24 pendant tout le mois.
+
+## Scénario 2 : extinction nocturne
+
+Le deuxième scénario conserve exactement la même infrastructure,
+mais limite l'utilisation des quatre nœuds à :
+
+`365 heures par mois et par instance`
+
+Cela correspond approximativement à une utilisation de 12 heures par jour.
+
+Le Google Cloud Pricing Calculator fournit alors une estimation de :
+
+`58,25 $ par mois`
+
+## Comparaison
+
+| Scénario                    |                  Utilisation | Coût mensuel estimé |
+| ---------------------------- | ---------------------------: | --------------------: |
+| Fonctionnement continu       |                   730 h/mois |              116,51 $ |
+| Extinction environ 12 h/jour |                   365 h/mois |               58,25 $ |
+| Économie estimée           | 365 h évitées par instance |               58,26 $ |
+
+L'économie estimée est donc :
+
+`116,51 $ - 58,25 $ = 58,26 $ par mois`
+
+Dans cette simulation, l'extinction du node pool pendant environ
+12 heures par jour permet donc de réduire d'environ 50 % le coût
+estimé des ressources de calcul configurées dans le simulateur.
+
+## Coûts restant possibles
+
+L'extinction du node pool ne signifie pas que toute l'infrastructure
+devient gratuite.
+
+Certaines ressources peuvent continuer à générer des coûts :
+
+- Les volumes persistants.
+- Les équilibreurs de charge.
+- Certaines adresses IP.
+- Cloud Storage.
+- Le trafic réseau.
+- Les ressources conservées en dehors du node pool.
+
+L'économie calculée ne doit donc pas être interprétée comme une réduction
+de 50 % de la facture Google Cloud totale.
+
+## Stockage et sauvegardes
+
+Le projet utilise notamment les buckets :
+
+- `foodtrack-d-backup-dev`
+- `foodtrack-d-logs-dev`
+- `foodtrack-d-tfstate-foodtrack-equipe-d`
+
+Le stockage est facturé en fonction du volume de données conservé.
+
+Le script :
+
+`scripts/purge-old-logs.sh`
+
+permet de supprimer les exports de logs datant de plus de 30 jours.
+
+Cette politique évite de conserver inutilement des journaux anciens
+et permet de limiter progressivement le coût du stockage.
+
+## Sauvegardes
+
+Le script :
+
+`scripts/backup-config.sh`
+
+crée une archive horodatée des fichiers de configuration et l'envoie
+dans le bucket Cloud Storage dédié.
+
+Les fichiers de configuration représentent un volume relativement faible,
+ce qui limite le coût de ces sauvegardes.
+
+## Principaux postes de coût
+
+Les principaux postes de coût identifiés sont :
+
+- Les machines du node pool GKE.
 - Les disques persistants.
-- Les Load Balancers.
-- Le stockage dans les buckets.
-- Cloud NAT.
-- Les logs et les métriques conservés.
+- Les équilibreurs de charge.
+- Les adresses IP.
+- Cloud Storage.
+- Le trafic réseau.
 
-## Économies liées au node pool
+## Optimisations retenues
 
-L'autoscaling permet d'adapter automatiquement le nombre de nœuds entre 1 et 5
-en fonction de la charge.
+Plusieurs choix permettent de limiter les coûts :
 
-Cela permet d'éviter de conserver en permanence le nombre maximal de nœuds
-lorsque l'application utilise peu de ressources.
-
-Un script d'exploitation permet également de réduire le node pool lorsque
-l'environnement n'est pas utilisé puis de le redémarrer lorsque cela est nécessaire.
-
-Cette stratégie permet de réduire le temps pendant lequel les machines
-du cluster restent actives inutilement.
-
-## Réduction des coûts de stockage
-
-Un script permet de supprimer les exports de logs de plus de 30 jours.
-
-Cette limite permet d'éviter de conserver inutilement des fichiers anciens
-dans Cloud Storage.
-
-Les buckets de sauvegarde, de logs et de state Terraform doivent également être
-surveillés afin d'éviter une augmentation inutile du volume de données stockées.
-
-## Éléments pris en compte dans l'estimation
-
-Les coûts de l'infrastructure dépendent principalement :
-
-- Du nombre de nœuds GKE actifs.
-- Du nombre d'heures d'utilisation des machines `e2-medium`.
-- Des disques `pd-standard` de 50 Go associés aux nœuds.
-- Du Load Balancer utilisé pour exposer l'application.
-- De Cloud NAT.
-- Du stockage Cloud Storage.
-- Du volume de logs et de métriques générés.
-
-Avec 4 nœuds actuellement actifs, la partie calcul du cluster représente
-un poste de coût important.
-
-L'autoscaling et l'arrêt des ressources lorsqu'elles ne sont pas nécessaires
-permettent donc de limiter la consommation.
-
-## État actuel
-
-La configuration finale du node pool a été identifiée.
-
-Le cluster utilise actuellement 4 nœuds `e2-medium` avec des disques
-`pd-standard` de 50 Go par nœud et un autoscaling configuré entre 1 et 5 nœuds.
-
-Les principales ressources générant des coûts ainsi que les pistes
-d'optimisation ont été identifiées.
+- Utilisation de machines `e2-medium`.
+- Utilisation de disques `pd-standard`.
+- Limitation des disques à 50 Go.
+- Autoscaling du node pool.
+- Extinction du node pool lorsqu'il n'est pas utilisé.
+- Purge des anciens exports de logs.
+- Utilisation d'un seul cluster pour les trois environnements.
 
 ## Conclusion
 
-Les principaux leviers de réduction des coûts sont :
+Le principal coût variable de l'infrastructure provient des nœuds GKE.
 
-- L'utilisation de l'autoscaling du node pool.
-- La réduction du nombre de nœuds lorsque l'environnement est peu utilisé.
-- L'arrêt des ressources lorsqu'elles ne sont pas nécessaires.
-- La suppression régulière des anciens exports de logs.
-- La surveillance du stockage et des ressources réseau.
+Le Google Cloud Pricing Calculator estime le fonctionnement continu
+des quatre nœuds à environ 116,51 $ par mois.
 
-Ces choix permettent de conserver une infrastructure fonctionnelle
-tout en limitant les ressources consommées inutilement.
+En limitant leur fonctionnement à environ 12 heures par jour,
+l'estimation descend à 58,25 $ par mois.
+
+L'extinction nocturne permet donc une économie estimée à 58,26 $ par mois
+sur les ressources simulées.
+
+Cette estimation permet de justifier l'intérêt du script d'extinction
+du node pool et montre l'impact concret d'une optimisation des périodes
+de fonctionnement de l'infrastructure.
