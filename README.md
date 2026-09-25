@@ -6,7 +6,7 @@ Ce projet contient la configuration Terraform complète pour le déploiement de 
 
 L'architecture repose sur une approche modulaire respectant les principes d'isolation réseau, de gestion centralisée des états (remote state), et d'intégration continue sécurisée via la fédération d'identités (WIF).
 
-🏗 Architecture globale
+Architecture globale
 L'infrastructure est découpée en quatre modules principaux :
 
 ```text
@@ -22,7 +22,7 @@ L'infrastructure est découpée en quatre modules principaux :
    └── wif-github/      # Fédération d'identité Workload Identity (GitHub Actions OIDC)
 ```
 
-🏷 Convention de nommage
+Convention de nommage
 Toutes les ressources respectent la convention de nommage imposée :
 
 | Ressource              | Convention de nom                             |
@@ -50,7 +50,7 @@ Toutes les ressources respectent la convention de nommage imposée :
    bash
    `export EQUIPE="d" export REGION="europe-west4" export ZONE="europe-west4-b" export PROJECT="form-gke-eleve04-42a1" gcloud config set project "$PROJECT" gcloud config set compute/region "$REGION" gcloud config set compute/zone "$ZONE"`
 
-🚀 Guide de déploiement
+Guide de déploiement
 
 1. Initialisation de Terraform
 
@@ -68,7 +68,7 @@ bash `terraform validate terraform plan`
 Déployez l'ensemble de l'infrastructure :
 bash `terraform apply -auto-approve`
 
-🔑 Intégration CI/CD avec GitHub Actions (WIF)
+Intégration CI/CD avec GitHub Actions (WIF)
 Le module wif-github met en place la fédération d'identités (Workload Identity Federation), évitant le stockage de clés de compte de service dans GitHub.
 
 1. Variables générées par Terraform
@@ -88,7 +88,7 @@ CI_SERVICE_ACCOUNT : La valeur issue de `ci_service_account_email`.
 
 Le compte de service du pipeline dispose de droits strictement minimaux : * `roles/artifactregistry.writer` : Publication des images Docker. * `roles/container.developer` : Déploiement des objets sur le cluster GKE.
 
-🔒 Sécurité & Accès au Cluster GKE
+Sécurité & Accès au Cluster GKE
 
 - Plan de contrôle (Master) : Les accès réseau sont restreints via `master_authorized_networks_config`.
 - Bastion SSH : Accessible uniquement via Identity-Aware Proxy (IAP) (`35.235.240.0/20`) via le port 22.
