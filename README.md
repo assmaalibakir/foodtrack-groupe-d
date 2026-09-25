@@ -36,7 +36,7 @@ Toutes les ressources respectent la convention de nommage imposée :
 | Dépôt d'images       | foodtrack-d-images                            |
 | Namespaces Kubernetes  | foodtrack-dev, foodtrack-test, foodtrack-prod |
 
-🛠 Prérequis
+Prérequis
 
 - Google Cloud SDK (gcloud) installé et authentifié.
 - Terraform >= 1.5.0 installe.
