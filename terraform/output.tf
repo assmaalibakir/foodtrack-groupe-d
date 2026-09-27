@@ -18,7 +18,7 @@ output "gke_cluster_name" {
 output "gke_cluster_endpoint" {
   description = "IP publique/interne de l'API Server GKE"
   value       = module.compute.kubernetes_cluster_endpoint
-  sensitive   = true 
+  sensitive   = true
 }
 
 output "bastion_ip" {
