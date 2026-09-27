@@ -1,8 +1,10 @@
-﻿apiVersion: autoscaling/v2
+# Autoscaling de production privilegiant disponibilite et reactivite.
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: api-capteurs
 spec:
+  # Deux repliques restent actives et une troisieme peut etre creee a 60 %.
   minReplicas: 2
   maxReplicas: 3
   metrics:

@@ -1,11 +1,16 @@
-﻿apiVersion: cloud.google.com/v1
+# Configure la verification de sante du backend du load balancer GKE.
+apiVersion: cloud.google.com/v1
 kind: BackendConfig
 metadata:
+  # Ce nom est reference par l'annotation du Service portail-qualite.
   name: portail-health
 spec:
   healthCheck:
+    # Nginx expose cette route sans journaliser chaque requete.
     type: HTTP
     requestPath: /healthz
     port: 8080
+
+    # Le backend est controle toutes les dix secondes avec un delai de cinq secondes.
     checkIntervalSec: 10
     timeoutSec: 5

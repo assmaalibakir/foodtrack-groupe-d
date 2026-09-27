@@ -1,7 +1,9 @@
+# Assemble la base commune avec les reglages de l'environnement de test.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: foodtrack-test
 resources:
+  # Le namespace est cree avant les ressources applicatives communes.
   - namespace.yaml
   - ../../base
 configMapGenerator:
@@ -9,15 +11,19 @@ configMapGenerator:
   - name: foodtrack-config
     behavior: merge
     files:
+      # Personnalise le portail sans dupliquer son HTML, son CSS ou son JavaScript.
       - environment.js
     literals:
+      # Parametres non sensibles consommes par l'API et affiches par le portail.
       - ENVIRONMENT=test
       - SEUIL_TEMPERATURE_C=2
       - NIVEAU_JOURNAL=info
 replicas:
+  # Une replique du portail suffit pour les validations de test.
   - name: portail-qualite
     count: 1
 patches:
+  # Redis dispose d'un volume persistant de 10 Gi.
   - target:
       kind: StatefulSet
       name: cache-releves
@@ -26,4 +32,5 @@ patches:
         path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage
         value: 10Gi
 
+  # Adapte les limites et la cible CPU du HPA.
   - path: hpa-patch.yaml

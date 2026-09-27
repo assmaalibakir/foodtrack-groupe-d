@@ -1,5 +1,7 @@
+# Valide les rendus Kustomize sans modifier le cluster.
 $ErrorActionPreference = "Stop"
 
+# Controle un dossier Kustomize, ses ressources et ses valeurs attendues.
 function Test-Kustomize {
     param(
         [string]$Nom,
@@ -9,12 +11,14 @@ function Test-Kustomize {
         [hashtable]$ValeursAttendues = @{}
     )
 
+    # kubectl kustomize assemble les manifestes localement sans les appliquer.
     $Sortie = & kubectl kustomize $Chemin 2>&1
 
     if ($LASTEXITCODE -ne 0) {
         throw "$Nom - erreur de rendu : $Sortie"
     }
 
+    # Une occurrence de kind: correspond a une ressource YAML rendue.
     $Texte = $Sortie -join "`n"
     $NombreRessources = ([regex]::Matches($Texte, "(?m)^kind:\s*")).Count
 
@@ -22,16 +26,19 @@ function Test-Kustomize {
         throw "$Nom - $NombreRessources ressources au lieu de $NombreAttendu"
     }
 
+    # Un Secret reel ne doit jamais apparaitre dans les fichiers versionnes.
     if ($Texte -match "(?m)^kind:\s*Secret\s*$") {
         throw "$Nom - un Secret apparait dans le rendu"
     }
 
+    # Verifie que chaque famille de ressources obligatoire est presente.
     foreach ($Kind in $KindsAttendus) {
         if ($Texte -notmatch "(?m)^kind:\s*$Kind\s*$") {
             throw "$Nom - ressource $Kind absente"
         }
     }
 
+    # Controle les parametres propres a l'environnement dans la ConfigMap rendue.
     foreach ($Cle in $ValeursAttendues.Keys) {
         $Valeur = [regex]::Escape([string]$ValeursAttendues[$Cle])
         $CleRegex = [regex]::Escape($Cle)
@@ -42,6 +49,7 @@ function Test-Kustomize {
         }
     }
 
+    # Le nom stable est necessaire aux montages subPath des fichiers du portail.
     if ($Nom -ne "cluster" -and $Texte -notmatch "(?m)^\s*name:\s*foodtrack-config\s*$") {
         throw "$Nom - le ConfigMap doit porter exactement le nom foodtrack-config"
     }
@@ -49,6 +57,7 @@ function Test-Kustomize {
     Write-Host "$Nom - OK - $NombreRessources ressources" -ForegroundColor Green
 }
 
+# Types de ressources attendus pour chaque environnement applicatif.
 $KindsApplication = @(
     "Namespace",
     "ConfigMap",
@@ -60,6 +69,7 @@ $KindsApplication = @(
     "Ingress"
 )
 
+# Developpement : seuil 8 C et journalisation detaillee.
 Test-Kustomize `
     -Nom "dev" `
     -Chemin ".\k8s\overlays\dev" `
@@ -71,6 +81,7 @@ Test-Kustomize `
         NIVEAU_JOURNAL = "debug"
     }
 
+# Test : seuil 2 C et journalisation informative.
 Test-Kustomize `
     -Nom "test" `
     -Chemin ".\k8s\overlays\test" `
@@ -82,6 +93,7 @@ Test-Kustomize `
         NIVEAU_JOURNAL = "info"
     }
 
+# Production : seuil 4 C et journaux limites aux avertissements.
 Test-Kustomize `
     -Nom "prod" `
     -Chemin ".\k8s\overlays\prod" `
@@ -93,6 +105,7 @@ Test-Kustomize `
         NIVEAU_JOURNAL = "warn"
     }
 
+# Cluster : une seule StorageClass commune aux trois environnements.
 Test-Kustomize `
     -Nom "cluster" `
     -Chemin ".\k8s\cluster" `
@@ -104,5 +117,6 @@ Test-Kustomize `
         volumeBindingMode = "WaitForFirstConsumer"
     }
 
+# Ce message n'est atteint que si toutes les validations ont reussi.
 Write-Host ""
 Write-Host "VALIDATION KUBERNETES REUSSIE" -ForegroundColor Green

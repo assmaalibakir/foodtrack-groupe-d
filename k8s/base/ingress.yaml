@@ -1,13 +1,17 @@
-﻿apiVersion: networking.k8s.io/v1
+# Point d'entree HTTP public de l'application FoodTrack.
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: portail-qualite
   annotations:
+    # GKE cree et administre un load balancer HTTP Google Cloud.
     kubernetes.io/ingress.class: gce
 spec:
   rules:
+    # Sans host impose, le portail est accessible par l'adresse IP publique.
     - http:
         paths:
+          # Toutes les routes passent par Nginx, y compris /api/.
           - path: /
             pathType: Prefix
             backend:

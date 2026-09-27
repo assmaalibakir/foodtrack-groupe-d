@@ -1,11 +1,21 @@
-﻿apiVersion: storage.k8s.io/v1
+# Classe de stockage partagee par les trois environnements FoodTrack.
+apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: foodtrack-hdd
+
+# Le pilote CSI de GKE cree un Persistent Disk a la demande.
 provisioner: pd.csi.storage.gke.io
 parameters:
+  # Un disque standard suffit pour le cache persistant Redis.
   type: pd-standard
   csi.storage.k8s.io/fstype: ext4
+
+# Le disque est provisionne dans la zone du pod qui le consomme.
 volumeBindingMode: WaitForFirstConsumer
+
+# Autorise l'agrandissement futur du volume sans le recreer.
 allowVolumeExpansion: true
+
+# Le disque est supprime avec le PersistentVolume associe.
 reclaimPolicy: Delete

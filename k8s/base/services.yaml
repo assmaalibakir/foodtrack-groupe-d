@@ -1,4 +1,5 @@
-﻿apiVersion: v1
+# Service interne du portail. L'exposition publique est assuree par l'Ingress.
+apiVersion: v1
 kind: Service
 metadata:
   name: portail-qualite
@@ -8,6 +9,7 @@ spec:
   ports:
     - {name: http, port: 8080, targetPort: 8080}
 ---
+# Service interne utilise par le reverse proxy Nginx pour joindre l'API.
 apiVersion: v1
 kind: Service
 metadata:
@@ -18,12 +20,14 @@ spec:
   ports:
     - {name: http, port: 8080, targetPort: 8080}
 ---
+# Service headless fournissant une identite reseau stable au StatefulSet Redis.
 apiVersion: v1
 kind: Service
 metadata:
   name: cache-releves
 spec:
   type: ClusterIP
+  # L'absence de ClusterIP conserve l'identite reseau du pod Redis.
   clusterIP: None
   selector: {app: cache-releves}
   ports:

@@ -1,7 +1,12 @@
-﻿apiVersion: v1
+# Complete le Service du portail avec les integrations propres a GKE.
+apiVersion: v1
 kind: Service
 metadata:
+  # Le nom doit correspondre au Service declare dans services.yaml.
   name: portail-qualite
   annotations:
+    # Le NEG permet au load balancer de cibler directement les pods.
     cloud.google.com/neg: '{"ingress":true}'
+
+    # Le port 8080 utilise la politique de sante portail-health.
     cloud.google.com/backend-config: '{"ports":{"8080":"portail-health"}}'
