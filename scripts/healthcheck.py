@@ -61,7 +61,6 @@ try:
         print("Statut : OK")
 
         # Code 0 = succes
-        # Ce code pourra etre utilise par une pipeline ou un CronJob
         sys.exit(0)
 
     else:
