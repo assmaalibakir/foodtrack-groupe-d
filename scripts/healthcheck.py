@@ -23,7 +23,7 @@ if len(sys.argv) < 2:
 
 # Recupere l'URL donnee dans la commande
 # Exemple :
-# python healthcheck.py http://localhost:8080/api/
+# python healthcheck.py http://34.54.176.240/api/
 url = sys.argv[1]
 
 
