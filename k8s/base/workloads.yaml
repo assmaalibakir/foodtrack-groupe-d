@@ -1,18 +1,22 @@
+# Portail web servi par Nginx.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: portail-qualite
 spec:
+  # Une replique par defaut ; la production remplace cette valeur par deux.
   replicas: 1
   selector:
     matchLabels: {app: portail-qualite}
   strategy:
+    # La mise a jour progressive conserve au moins un pod disponible.
     type: RollingUpdate
     rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
   template:
     metadata:
       labels: {app: portail-qualite}
     spec:
+      # Le portail n'a pas besoin d'acceder a l'API Kubernetes.
       automountServiceAccountToken: false
       containers:
         - name: nginx
@@ -20,16 +24,20 @@ spec:
           ports:
             - {name: http, containerPort: 8080}
           resources:
+            # Reservation minimale et plafond applicables a chaque replique.
             requests: {cpu: 100m, memory: 128Mi}
             limits: {cpu: 300m, memory: 128Mi}
+          # Attend que Nginx ait termine son demarrage.
           startupProbe:
             httpGet: {path: /healthz, port: 8080}
             periodSeconds: 5
             failureThreshold: 12
+          # Le pod ne recoit du trafic que lorsque /healthz repond.
           readinessProbe:
             httpGet: {path: /healthz, port: 8080}
             periodSeconds: 5
             timeoutSeconds: 2
+          # Kubernetes redemarre Nginx s'il cesse de repondre.
           livenessProbe:
             httpGet: {path: /healthz, port: 8080}
             periodSeconds: 10
@@ -62,16 +70,18 @@ spec:
               subPath: logo.png
               readOnly: true
       volumes:
+        # Kustomize genere cette ConfigMap avec les fichiers communs et l'overlay.
         - name: conf
           configMap:
             name: foodtrack-config
 ---
+# API des capteurs, dimensionnee automatiquement par le HPA.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: api-capteurs
 spec:
-  # Une replique par defaut ; le HPA sera ajoute a l'etape suivante.
+  # Une replique par defaut ; le HPA adapte ensuite le nombre de pods.
   selector:
     matchLabels: {app: api-capteurs}
   strategy:
@@ -81,7 +91,9 @@ spec:
     metadata:
       labels: {app: api-capteurs}
     spec:
+      # L'API n'a pas besoin d'acceder directement a l'API Kubernetes.
       automountServiceAccountToken: false
+      # Laisse le temps aux requetes en cours de se terminer proprement.
       terminationGracePeriodSeconds: 30
       containers:
         - name: api
@@ -89,10 +101,12 @@ spec:
           ports:
             - {name: http, containerPort: 8080}
           env:
+            # Expose le nom du pod sans le coder en dur.
             - name: POD_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            # Parametres non sensibles fournis par la ConfigMap de l'environnement.
             - name: ENVIRONMENT
               valueFrom:
                 configMapKeyRef: {name: foodtrack-config, key: ENVIRONMENT}
@@ -102,12 +116,15 @@ spec:
             - name: NIVEAU_JOURNAL
               valueFrom:
                 configMapKeyRef: {name: foodtrack-config, key: NIVEAU_JOURNAL}
+            # Le jeton sensible provient d'un Secret cree hors de Git.
             - name: INGEST_TOKEN
               valueFrom:
                 secretKeyRef: {name: foodtrack-api-config, key: INGEST_TOKEN}
           resources:
+            # Reservation minimale et plafond applicables a chaque replique.
             requests: {cpu: 100m, memory: 128Mi}
             limits: {cpu: 300m, memory: 128Mi}
+          # Les trois sondes distinguent demarrage, disponibilite et sante.
           startupProbe:
             httpGet: {path: /, port: 8080}
             periodSeconds: 2
@@ -121,14 +138,17 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 2
           lifecycle:
+            # Attend dix secondes avant l'arret definitif du conteneur.
             preStop:
               sleep: {seconds: 10}
 ---
+# Cache Redis persistant gere par un StatefulSet.
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: cache-releves
 spec:
+  # Le Service headless fournit une identite reseau stable a Redis.
   serviceName: cache-releves
   replicas: 1
   selector:
@@ -137,14 +157,18 @@ spec:
     metadata:
       labels: {app: cache-releves}
     spec:
+      # Redis n'a pas besoin d'acceder a l'API Kubernetes.
       automountServiceAccountToken: false
       securityContext:
+        # Autorise le processus Redis a ecrire dans le volume monte.
         fsGroup: 999
       containers:
         - name: redis
           image: redis:8.10.1
+          # Active la persistance AOF et protege Redis par mot de passe.
           args: ["--appendonly", "yes", "--dir", "/data", "--requirepass", "$(REDIS_PASSWORD)"]
           env:
+            # Les deux variables utilisent le meme mot de passe stocke dans le Secret.
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef: {name: foodtrack-api-config, key: CACHE_PASSWORD}
@@ -154,8 +178,10 @@ spec:
           ports:
             - {name: redis, containerPort: 6379}
           resources:
+            # Redis demande peu de CPU au repos, avec une limite plus haute en pointe.
             requests: {cpu: 50m, memory: 128Mi}
             limits: {cpu: 500m, memory: 512Mi}
+          # redis-cli utilise REDISCLI_AUTH pour les sondes sans afficher le mot de passe.
           startupProbe:
             exec:
               command: [sh, -ec, 'test "$(redis-cli ping)" = "PONG"']
@@ -167,15 +193,18 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 2
           livenessProbe:
+            # Une verification TCP suffit pour detecter un processus bloque.
             tcpSocket: {port: 6379}
             periodSeconds: 10
           volumeMounts:
             - {name: donnees, mountPath: /data}
   volumeClaimTemplates:
+    # Chaque pod Redis recoit un PersistentVolumeClaim stable.
     - metadata:
         name: donnees
       spec:
         accessModes: [ReadWriteOnce]
+        # La StorageClass cree un Persistent Disk standard dans GKE.
         storageClassName: foodtrack-hdd
         resources:
           requests:

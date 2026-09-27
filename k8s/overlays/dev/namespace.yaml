@@ -1,7 +1,9 @@
-﻿apiVersion: v1
+# Namespace isolant les ressources de l'environnement de developpement.
+apiVersion: v1
 kind: Namespace
 metadata:
   name: foodtrack-dev
   labels:
+    # Labels utilises pour identifier l'application et son environnement.
     app.kubernetes.io/part-of: foodtrack
     foodtrack.example/env: dev

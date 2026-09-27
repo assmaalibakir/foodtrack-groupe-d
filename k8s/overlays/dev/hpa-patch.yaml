@@ -1,8 +1,10 @@
-﻿apiVersion: autoscaling/v2
+# Autoscaling modere pour limiter les ressources en developpement.
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: api-capteurs
 spec:
+  # Une a deux repliques, avec declenchement a 80 % du CPU demande.
   minReplicas: 1
   maxReplicas: 2
   metrics:

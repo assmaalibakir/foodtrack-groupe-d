@@ -1,5 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+
+# Ressources applicatives communes aux trois environnements.
 resources:
   - workloads.yaml
   - services.yaml
@@ -7,8 +9,10 @@ resources:
   - backendconfig.yaml
   - hpa.yaml
 patches:
+  # Ajoute au Service les annotations necessaires au load balancer GKE.
   - path: service-portail-patch.yaml
 labels:
+  # Ce label commun permet d'identifier toutes les ressources FoodTrack.
   - pairs:
       app.kubernetes.io/part-of: foodtrack
     includeTemplates: true

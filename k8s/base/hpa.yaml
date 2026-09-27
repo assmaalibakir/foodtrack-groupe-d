@@ -1,15 +1,20 @@
-﻿apiVersion: autoscaling/v2
+# Autoscaling horizontal commun de l'API ; chaque overlay adapte ses seuils.
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: api-capteurs
 spec:
+  # Le HPA agit sur le Deployment de l'API.
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
     name: api-capteurs
+
+  # Valeurs par defaut correspondant au developpement.
   minReplicas: 1
   maxReplicas: 2
   metrics:
+    # Le nombre de pods varie selon l'utilisation moyenne du CPU demande.
     - type: Resource
       resource:
         name: cpu

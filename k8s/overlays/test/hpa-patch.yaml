@@ -1,8 +1,10 @@
-﻿apiVersion: autoscaling/v2
+# Autoscaling de test, plus reactif que celui du developpement.
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: api-capteurs
 spec:
+  # Une a deux repliques, avec declenchement a 70 % du CPU demande.
   minReplicas: 1
   maxReplicas: 2
   metrics:
