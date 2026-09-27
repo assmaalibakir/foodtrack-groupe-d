@@ -35,6 +35,8 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 2
           volumeMounts:
+            # La configuration Nginx et les fichiers du portail proviennent
+            # de la même ConfigMap, montée en lecture seule fichier par fichier.
             - name: conf
               mountPath: /etc/nginx/conf.d/default.conf
               subPath: default.conf
@@ -42,6 +44,18 @@ spec:
             - name: conf
               mountPath: /usr/share/nginx/html/index.html
               subPath: index.html
+              readOnly: true
+            - name: conf
+              mountPath: /usr/share/nginx/html/app.css
+              subPath: app.css
+              readOnly: true
+            - name: conf
+              mountPath: /usr/share/nginx/html/app.js
+              subPath: app.js
+              readOnly: true
+            - name: conf
+              mountPath: /usr/share/nginx/html/environment.js
+              subPath: environment.js
               readOnly: true
             - name: conf
               mountPath: /usr/share/nginx/html/logo.png

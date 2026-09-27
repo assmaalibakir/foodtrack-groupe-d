@@ -13,9 +13,15 @@ labels:
       app.kubernetes.io/part-of: foodtrack
     includeTemplates: true
 configMapGenerator:
+  # Nginx et le portail sont assemblés dans une ConfigMap commune.
+  # Chaque overlay ajoute ensuite son fichier environment.js.
   - name: foodtrack-config
     files:
       - default.conf=nginx.conf
+      - index.html
+      - app.css
+      - app.js
       - logo.png
 generatorOptions:
+  # Le nom reste stable afin que les montages subPath ne changent pas.
   disableNameSuffixHash: true
