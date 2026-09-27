@@ -105,4 +105,3 @@ resource "google_compute_instance" "bastion" {
     EOF
   }
 }
-
