@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Tableau de bord de suivi de la chaîne du froid FoodTrack">
+  <title>FoodTrack</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <div class="page-shell">
+    <!-- En-tête commun : identité FoodTrack et environnement actif. -->
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Accueil FoodTrack">
+        <span class="brand-logo">
+          <img src="/logo.png" alt="Logo FoodTrack Brands">
+        </span>
+        <span>
+          <strong>FoodTrack</strong>
+          <small>Supervision de la chaîne du froid</small>
+        </span>
+      </a>
+
+      <div class="header-actions">
+        <span class="environment" id="environment">Chargement</span>
+        <span class="live"><i></i> Actualisation en direct</span>
+      </div>
+    </header>
+
+    <main>
+      <!-- Présentation du service et état synthétique de la plateforme. -->
+      <section class="hero">
+        <div>
+          <span class="eyebrow">Qualité & traçabilité</span>
+          <h1>La température de vos livraisons, sous contrôle.</h1>
+          <p>
+            Suivez les capteurs, repérez les écarts et protégez vos produits
+            pendant chaque tournée.
+          </p>
+
+          <div class="hero-actions">
+            <a class="button primary" href="/api/">Consulter l'API</a>
+            <a class="button secondary" href="/healthz">Vérifier le portail</a>
+          </div>
+        </div>
+
+        <aside class="hero-status">
+          <div class="status-heading">
+            <span>État de la plateforme</span>
+            <strong id="global-status">Vérification…</strong>
+          </div>
+
+          <div class="service-line">
+            <span>
+              <i class="status-dot" id="portal-dot"></i>
+              Portail web
+            </span>
+            <strong id="portal-status">En ligne</strong>
+          </div>
+
+          <div class="service-line">
+            <span>
+              <i class="status-dot pending" id="api-dot"></i>
+              API capteurs
+            </span>
+            <strong id="api-status">Test en cours</strong>
+          </div>
+
+          <div class="service-line">
+            <span>
+              <i class="status-dot"></i>
+              Cache Redis
+            </span>
+            <strong>Interne</strong>
+          </div>
+
+          <p class="updated">
+            Dernière vérification :
+            <span id="last-update">—</span>
+          </p>
+        </aside>
+      </section>
+
+      <!-- Indicateurs de démonstration utilisés pour illustrer le portail. -->
+      <section class="metrics" aria-label="Indicateurs de suivi">
+        <article class="metric-card">
+          <div class="metric-icon blue">◉</div>
+          <div>
+            <span>Capteurs suivis</span>
+            <strong>24</strong>
+            <small>sur 6 tournées actives</small>
+          </div>
+        </article>
+
+        <article class="metric-card">
+          <div class="metric-icon green">✓</div>
+          <div>
+            <span>Relevés conformes</span>
+            <strong>21</strong>
+            <small>87,5 % du parc</small>
+          </div>
+        </article>
+
+        <article class="metric-card">
+          <div class="metric-icon amber">!</div>
+          <div>
+            <span>À surveiller</span>
+            <strong>2</strong>
+            <small>écart inférieur à 1 °C</small>
+          </div>
+        </article>
+
+        <article class="metric-card">
+          <div class="metric-icon red">↑</div>
+          <div>
+            <span>Alertes</span>
+            <strong>1</strong>
+            <small>intervention requise</small>
+          </div>
+        </article>
+      </section>
+
+      <!-- Tableau des relevés et rappel de la configuration Kubernetes. -->
+      <section class="content-grid">
+        <article class="panel readings-panel">
+          <div class="panel-header">
+            <div>
+              <span class="eyebrow">Derniers relevés</span>
+              <h2>Suivi des tournées</h2>
+            </div>
+
+            <span class="demo-label">Données de démonstration</span>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Véhicule</th>
+                  <th>Chargement</th>
+                  <th>Destination</th>
+                  <th>Température</th>
+                  <th>État</th>
+                </tr>
+              </thead>
+              <tbody id="readings"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <aside class="panel summary-panel">
+          <span class="eyebrow">Configuration</span>
+          <h2>Environnement actif</h2>
+
+          <div class="gauge">
+            <span>Seuil configuré</span>
+            <strong><span id="threshold">—</span> °C</strong>
+          </div>
+
+          <ul class="summary-list">
+            <li>
+              <span>Namespace</span>
+              <strong id="namespace">—</strong>
+            </li>
+            <li>
+              <span>Niveau de journal</span>
+              <strong id="log-level">—</strong>
+            </li>
+            <li>
+              <span>Région</span>
+              <strong>europe-west4</strong>
+            </li>
+            <li>
+              <span>Stockage</span>
+              <strong>Redis persistant</strong>
+            </li>
+          </ul>
+
+          <div class="quality-note">
+            <span>Conseil qualité</span>
+            <p>
+              Traitez en priorité les relevés signalés en rouge et contrôlez
+              la porte du véhicule concerné.
+            </p>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <footer>
+      <span>FoodTrack Brands · Équipe D</span>
+      <span>
+        Plateforme GKE ·
+        <span id="footer-environment">—</span>
+      </span>
+    </footer>
+  </div>
+
+  <!-- L'overlay charge sa configuration avant le comportement commun. -->
+  <script src="/environment.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -5,10 +5,11 @@ resources:
   - namespace.yaml
   - ../../base
 configMapGenerator:
+  # Fusionne les paramètres de test avec les fichiers communs du portail.
   - name: foodtrack-config
     behavior: merge
     files:
-      - index.html
+      - environment.js
     literals:
       - ENVIRONMENT=test
       - SEUIL_TEMPERATURE_C=2

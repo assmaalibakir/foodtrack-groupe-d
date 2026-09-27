@@ -1,14 +1,15 @@
-﻿apiVersion: kustomize.config.k8s.io/v1beta1
+apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: foodtrack-prod
 resources:
   - namespace.yaml
   - ../../base
 configMapGenerator:
+  # Fusionne les paramètres de production avec les fichiers communs du portail.
   - name: foodtrack-config
     behavior: merge
     files:
-      - index.html
+      - environment.js
     literals:
       - ENVIRONMENT=prod
       - SEUIL_TEMPERATURE_C=4
